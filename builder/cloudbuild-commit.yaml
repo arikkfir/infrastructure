@@ -1,0 +1,15 @@
+timeout: 1200s
+steps:
+
+  - id: pull-latest
+    name: gcr.io/cloud-builders/docker
+    dir: builder
+    args: [pull, "gcr.io/${PROJECT_ID}/builder:latest"]
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    dir: builder
+    args: [build, "--tag=gcr.io/${PROJECT_ID}/builder:${COMMIT_SHA}", "--cache-from=gcr.io/${PROJECT_ID}/builder:latest", .]
+    waitFor: [pull-latest]
+
+images: ["gcr.io/${PROJECT_ID}/builder:${COMMIT_SHA}"]

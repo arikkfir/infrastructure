@@ -1,0 +1,18 @@
+timeout: 1200s
+steps:
+
+  - id: pull
+    name: gcr.io/cloud-builders/docker
+    args: [pull, "gcr.io/${PROJECT_ID}/builder:${COMMIT_SHA}"]
+
+  - id: tag-name
+    name: gcr.io/cloud-builders/docker
+    args: [tag, "gcr.io/${PROJECT_ID}/builder:${COMMIT_SHA}", "gcr.io/${PROJECT_ID}/builder:${TAG_NAME}"]
+    waitFor: [pull]
+
+  - id: tag-latest
+    name: gcr.io/cloud-builders/docker
+    args: [tag, "gcr.io/${PROJECT_ID}/builder:${COMMIT_SHA}", "gcr.io/${PROJECT_ID}/builder:latest"]
+    waitFor: [tag-name]
+
+images: ["gcr.io/${PROJECT_ID}/builder:${TAG_NAME}", "gcr.io/${PROJECT_ID}/builder:latest"]
