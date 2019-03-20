@@ -1,10 +1,7 @@
 FROM launcher.gcr.io/google/ubuntu16_04
 
 RUN apt-get -y update && \
-    apt-get -y install  gcc make unzip \
-                        python2.7 python-dev python-setuptools python-software-properties \
-                        curl ca-certificates \
-                        software-properties-common apt-transport-https && \
+    apt-get -y install  gcc make unzip gettext-base python2.7 python-dev python-setuptools python-software-properties curl ca-certificates software-properties-common apt-transport-https && \
     curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - && \
     apt-key fingerprint 0EBFCD88 && \
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial edge" && \
