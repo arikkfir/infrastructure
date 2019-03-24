@@ -137,14 +137,11 @@ resource "google_container_cluster" "devops" {
   pod_security_policy_config {
     enabled = false
   }
-  #  lifecycle {
-  #    ignore_changes = ["initial_node_count"]
-  #  }
 }
 resource "google_container_node_pool" "devops_core" {
   provider           = "google-beta"
   project            = "${google_project.arikkfir.project_id}"
-  name               = "core-2"
+  name               = "core-1"
   zone               = "${google_container_cluster.devops.zone}"
   cluster            = "${google_container_cluster.devops.name}"
   version            = "${var.devops_gke_node_version}"
@@ -180,7 +177,7 @@ resource "cloudflare_record" "jenkins" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "jenkins.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
+  value   = "${cloudflare_record.cluster.name}"
   ttl     = 1
   proxied = false
 }
@@ -188,7 +185,7 @@ resource "cloudflare_record" "spinnaker_deck" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "spinnaker.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
+  value   = "${cloudflare_record.cluster.name}"
   ttl     = 1
   proxied = false
 }
@@ -196,7 +193,7 @@ resource "cloudflare_record" "spinnaker_gate" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "gate.spinnaker.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
+  value   = "${cloudflare_record.cluster.name}"
   ttl     = 1
   proxied = false
 }
@@ -204,7 +201,7 @@ resource "cloudflare_record" "traefik" {
   domain  = "kfirs.com"
   name    = "traefik.devops.kfirs.com"
   type    = "CNAME"
-  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
+  value   = "${cloudflare_record.cluster.name}"
   ttl     = 1
   proxied = false
 }
