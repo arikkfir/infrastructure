@@ -13,14 +13,9 @@ Contrary to the service account key, changing the secrets **does** affect the de
 
 ## ROADMAP
 
-- [ ] Evaluate [kiali](https://www.kiali.io)
-- [ ] Consider applying affinity to core components
-- [ ] Consider applying priority to core components
-- [ ] Use Cloud Build to apply Terraform infrastructure
-- [ ] Terraform should also set up Kubernetes clusters (`dev`, `qa`, `prod`)
-- [ ] Production cluster `prod` should also run Spinnaker
-- [ ] Spinnaker should be connected to Cloud Build
-- [ ] Projects are built by Cloud Build, which publishes artifacts (e.g. `gcr`)
-- [ ] Artifacts detected by Spinnaker, which deploys/delivers them to relevant environments
+- [x] Consider applying priority to core components
+- [x] Use Cloud Build to apply Terraform infrastructure
+- [x] Spinnaker should be connected to Cloud Build
 - [ ] Custom GitHub bot that detects commands in PRs and triggers Spinnaker pipelines (deployment)
 - [ ] Evaluate Tekton
+- [ ] Evaluate [kiali](https://www.kiali.io)
