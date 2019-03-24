@@ -34,8 +34,12 @@ export KUBEWATCH_SLACK_TOKEN=$(terraform output -json kubewatch_slack_token | jq
 export WHITELISTED_IP_CIDRS=$(terraform output -json whitelisted_cidrs | jq -jc '.value | join(",")')
 
 # common cluster setup
-git clone git@github.com:arikkfir/infrastructure-env.git && git checkout 0.0.1
-pushd infrastructure-env && ./apply.sh && popd && rm -rf infrastructure-env
+git clone https://github.com/arikkfir/infrastructure-env.git
+pushd infrastructure-env
+git checkout 0.0.2
+./apply.sh
+popd
+rm -rf infrastructure-env
 
 # jenkins
 cat jenkins.yaml | envsubst | kubectl apply -f -
