@@ -1,0 +1,6 @@
+timeout: 1200s
+steps:
+
+  - id: apply
+    name: gcr.io/${PROJECT_ID}/builder:latest
+    entrypoint: ./apply.sh
