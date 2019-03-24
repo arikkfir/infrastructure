@@ -1,0 +1,193 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spinnaker
+  labels:
+    app: spinnaker
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: spinnaker
+  name: spinnaker
+  labels:
+    app: spinnaker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spinnaker-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - namespace: spinnaker
+    kind: ServiceAccount
+    name: spinnaker
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: spinnaker
+  name: halyard
+  labels:
+    app: spinnaker
+    component: halyard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  namespace: spinnaker
+  name: spinnaker
+  labels:
+    app: spinnaker
+spec:
+  secretName: spinnaker-crt
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  commonName: spinnaker.kfirs.com
+  dnsNames:
+    - spinnaker.kfirs.com
+    - gate.spinnaker.kfirs.com
+  acme:
+    config:
+      - dns01:
+          provider: cloudflare
+        domains:
+          - spinnaker.kfirs.com
+          - gate.spinnaker.kfirs.com
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: spinnaker
+  name: spinnaker
+  labels:
+    app: spinnaker
+  annotations:
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    traefik.ingress.kubernetes.io/redirect-permanent: "true"
+    traefik.ingress.kubernetes.io/whitelist-source-range: "${WHITELISTED_IP_CIDRS}"
+spec:
+  rules:
+    - host: spinnaker.kfirs.com
+      http:
+        paths:
+          - backend:
+              serviceName: deck
+              servicePort: http
+    - host: gate.spinnaker.kfirs.com
+      http:
+        paths:
+          - backend:
+              serviceName: gate
+              servicePort: http
+  tls:
+    - hosts:
+        - spinnaker.kfirs.com
+        - gate.spinnaker.kfirs.com
+      secretName: spinnaker-crt
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: spinnaker
+  name: config
+  labels:
+    app: spinnaker
+data:
+  kube-connect.sh: |
+    #!/usr/bin/env bash
+    set -eu -o pipefail
+    kubectl config set-cluster default --server=https://kubernetes.default --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    kubectl config set-context default --cluster=default
+    token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+    kubectl config set-credentials user --token=$token
+    kubectl config set-context default --user=user
+    kubectl config use-context default
+
+  bashrc-init.sh: |
+    #!/usr/bin/env bash
+    set -eu -o pipefail
+    ln -s /home/spinnaker/.hal/.kube /home/spinnaker/.kube
+    grep -e "^alias ll" /home/spinnaker/.bashrc > /dev/null || echo "alias ll='ls -l'" >> /home/spinnaker/.bashrc
+    grep -e "^alias la" /home/spinnaker/.bashrc > /dev/null || echo "alias la='ls -la'" >> /home/spinnaker/.bashrc
+    grep -e "^source <(hal --print-bash-completion)" /home/spinnaker/.bashrc > /dev/null || echo "source <(hal --print-bash-completion)" >> /home/spinnaker/.bashrc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: spinnaker
+  name: halyard
+  labels:
+    app: spinnaker
+    component: halyard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spinnaker
+      component: halyard
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: spinnaker
+        component: halyard
+    spec:
+      serviceAccountName: spinnaker
+      initContainers:
+        - name: init-chown-data
+          image: busybox:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 64Mi
+          command: ["chown", "-R", "1000:1000", "/data"]
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+      containers:
+        - name: halyard
+          image: gcr.io/spinnaker-marketplace/halyard:1.17.0
+          lifecycle:
+            postStart:
+              exec:
+                command: [bash, -c, 'bash /home/spinnaker/bin/kube-connect.sh; bash /home/spinnaker/bin/bashrc-init.sh']
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+          volumeMounts:
+            - name: config
+              mountPath: /home/spinnaker/bin
+              readOnly: true
+            - name: storage
+              mountPath: /home/spinnaker/.hal
+              readOnly: false
+      volumes:
+        - name: config
+          configMap:
+            name: config
+            optional: false
+        - name: storage
+          persistentVolumeClaim:
+            claimName: halyard
+            readOnly: false
+---

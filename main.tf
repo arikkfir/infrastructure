@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 0.11.11"
+  required_version = "~> 0.11.13"
   backend "gcs" {
     project = "arikkfir"
     bucket  = "arikkfir-terraform"
@@ -50,21 +50,137 @@ resource "cloudflare_record" "kfirs-www" {
   ttl     = 1
   proxied = true
 }
-module "devops" {
-  source              = "github.com/arikkfir/infrastructure-env?ref=master"
-  name                = "devops"
-  gcp_project_id      = "${google_project.arikkfir.name}"
-  gke_master_password = "${var.devops_gke_master_password}"
-  gke_master_username = "${var.devops_gke_master_username}"
-  gke_master_version  = "${var.devops_gke_master_version}"
-  gke_node_version    = "${var.devops_gke_node_version}"
-  whitelisted_cidrs   = "${var.devops_whitelisted_cidrs}"
+resource "google_compute_network" "devops" {
+  provider                = "google-beta"
+  project                 = "${google_project.arikkfir.project_id}"
+  name                    = "devops"
+  auto_create_subnetworks = false
+}
+resource "google_compute_subnetwork" "devops" {
+  provider           = "google-beta"
+  project            = "${google_project.arikkfir.project_id}"
+  name               = "europe-west1"
+  ip_cidr_range      = "10.128.0.0/16"
+  region             = "europe-west1"
+  network            = "${google_compute_network.devops.self_link}"
+  secondary_ip_range = [
+    {
+      ip_cidr_range = "10.130.0.0/16"
+      range_name    = "gke-pods"
+    },
+    {
+      ip_cidr_range = "10.131.0.0/16"
+      range_name    = "gke-services"
+    }
+  ]
+}
+resource "google_compute_address" "devops_cluster_ingress" {
+  provider     = "google-beta"
+  project      = "${google_project.arikkfir.project_id}"
+  name         = "gke-devops-lb"
+  address_type = "EXTERNAL"
+  network_tier = "PREMIUM"
+  region       = "europe-west1"
+}
+resource "google_container_cluster" "devops" {
+  provider                    = "google-beta"
+  project                     = "${google_project.arikkfir.project_id}"
+  name                        = "devops"
+  zone                        = "europe-west1-b"
+  enable_binary_authorization = false
+  enable_kubernetes_alpha     = false
+  enable_tpu                  = false
+  enable_legacy_abac          = false
+  min_master_version          = "${var.devops_gke_master_version}"
+  network                     = "${google_compute_network.devops.self_link}"
+  subnetwork                  = "${google_compute_subnetwork.devops.self_link}"
+  logging_service             = "logging.googleapis.com/kubernetes"
+  monitoring_service          = "monitoring.googleapis.com/kubernetes"
+  initial_node_count          = 1
+  remove_default_node_pool    = true
+  addons_config {
+    horizontal_pod_autoscaling {
+      disabled = false
+    }
+    http_load_balancing {
+      disabled = true
+    }
+    kubernetes_dashboard {
+      disabled = true
+    }
+    network_policy_config {
+      disabled = true
+    }
+  }
+  cluster_autoscaling {
+    enabled = false
+  }
+  ip_allocation_policy {
+    cluster_secondary_range_name  = "gke-pods"
+    services_secondary_range_name = "gke-services"
+  }
+  maintenance_policy {
+    "daily_maintenance_window" {
+      start_time = "04:00"
+    }
+  }
+  master_auth {
+    username = "${var.devops_gke_master_username}"
+    password = "${var.devops_gke_master_password}"
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+  }
+  network_policy {
+    enabled = false
+  }
+  pod_security_policy_config {
+    enabled = false
+  }
+  #  lifecycle {
+  #    ignore_changes = ["initial_node_count"]
+  #  }
+}
+resource "google_container_node_pool" "devops_core" {
+  provider           = "google-beta"
+  project            = "${google_project.arikkfir.project_id}"
+  name               = "core-2"
+  zone               = "${google_container_cluster.devops.zone}"
+  cluster            = "${google_container_cluster.devops.name}"
+  version            = "${var.devops_gke_node_version}"
+  initial_node_count = 1
+  autoscaling {
+    max_node_count = 3
+    min_node_count = 1
+  }
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+  node_config {
+    min_cpu_platform = "Automatic"
+    disk_size_gb     = 100
+    disk_type        = "pd-standard"
+    machine_type     = "n1-standard-2"
+    preemptible      = true
+    metadata {
+      "disable-legacy-endpoints" = "true"
+    }
+  }
+}
+resource "cloudflare_record" "cluster" {
+  domain  = "kfirs.com"
+  name    = "cluster.devops.kfirs.com"
+  type    = "A"
+  value   = "${google_compute_address.devops_cluster_ingress.address}"
+  ttl     = 1
+  proxied = false
 }
 resource "cloudflare_record" "jenkins" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "jenkins.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${module.devops.cluster_dns_name}"
+  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
   ttl     = 1
   proxied = false
 }
@@ -72,7 +188,7 @@ resource "cloudflare_record" "spinnaker_deck" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "spinnaker.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${module.devops.cluster_dns_name}"
+  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
   ttl     = 1
   proxied = false
 }
@@ -80,7 +196,15 @@ resource "cloudflare_record" "spinnaker_gate" {
   domain  = "${cloudflare_zone.kfirs.zone}"
   name    = "gate.spinnaker.${cloudflare_zone.kfirs.zone}"
   type    = "CNAME"
-  value   = "${module.devops.cluster_dns_name}"
+  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
+  ttl     = 1
+  proxied = false
+}
+resource "cloudflare_record" "traefik" {
+  domain  = "kfirs.com"
+  name    = "traefik.devops.kfirs.com"
+  type    = "CNAME"
+  value   = "${cloudflare_record.cluster.name}.${cloudflare_zone.kfirs.zone}"
   ttl     = 1
   proxied = false
 }

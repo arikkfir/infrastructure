@@ -8,10 +8,7 @@ output "cloudflare_token" {
   value = "${var.cloudflare_token}"
 }
 output "cluster_ingress_address" {
-  value = "${module.devops.cluster_ingress_address}"
-}
-output "env_module_path" {
-  value = "${module.devops.path}"
+  value = "${google_compute_address.devops_cluster.address}"
 }
 output "grafana_admin_password" {
   value = "${var.grafana_admin_password}"
