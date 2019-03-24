@@ -47,4 +47,4 @@ kubectl wait --timeout=5m --namespace=jenkins --for=condition=Available deploy/m
 
 # spinnaker
 cat spinnaker.yaml | envsubst | kubectl apply -f -
-kubectl wait --timeout=5m --namespace=spinnaker --for=condition=Available deploy/spin-hal
+kubectl wait --timeout=5m --namespace=spinnaker --for=condition=Available deploy/halyard
