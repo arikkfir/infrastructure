@@ -14,8 +14,6 @@ gcloud auth activate-service-account --key-file=deployer-sa-key.json
 
 # Invoke Terraform
 GOOGLE_CREDENTIALS=./deployer-sa-key.json terraform init
-GOOGLE_CREDENTIALS=./deployer-sa-key.json terraform plan
-[[ 1==1 ]] && exit 1
 GOOGLE_CREDENTIALS=./deployer-sa-key.json terraform apply -auto-approve
 gcloud container clusters get-credentials --zone=europe-west1-b devops
 
