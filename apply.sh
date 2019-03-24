@@ -7,7 +7,7 @@ gsutil cp gs://arikkfir-devops/secrets/deployer-sa-key.json.enc ./
 
 # Decrypt resources
 gcloud kms decrypt --keyring=global --location=global --key=deploy --ciphertext-file=deployer-sa-key.json.enc --plaintext-file=deployer-sa-key.json
-gcloud kms decrypt --keyring=global --location=global --key=deploy --ciphertext-file=secrets.auto.tfvars.enc --plaintext-file=secrets.auto.tfvars.json
+gcloud kms decrypt --keyring=global --location=global --key=deploy --ciphertext-file=secrets.auto.tfvars.enc --plaintext-file=secrets.auto.tfvars
 
 # Switch to the Deployer service account
 gcloud auth activate-service-account --key-file=deployer-sa-key.json
