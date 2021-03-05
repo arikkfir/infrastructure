@@ -1,6 +1,6 @@
-timeout: 1200s
+timeout: 3600s
 steps:
-
-  - id: apply
-    name: gcr.io/${PROJECT_ID}/builder:latest
-    entrypoint: ./apply.sh
+  - name: hashicorp/terraform:0.14.5
+    args: [init]
+  - name: hashicorp/terraform:0.14.5
+    args: [apply, -input=false, -lock-timeout=10s, -auto-approve]

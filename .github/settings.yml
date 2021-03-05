@@ -1,5 +1,0 @@
-_extends: .github
-repository:
-  name: infrastructure
-  description: Infrastructure-as-Code repository for the KFIRs project.
-  topics: iac, infrastructure, terraform, kustomize, kfirs
