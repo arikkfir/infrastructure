@@ -1,0 +1,6 @@
+timeout: 3600s
+steps:
+  - name: hashicorp/terraform:0.14.5
+    args: [init]
+  - name: hashicorp/terraform:0.14.5
+    args: [plan, -input=false, -lock-timeout=10s]
