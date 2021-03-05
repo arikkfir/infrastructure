@@ -1,8 +1,8 @@
 terraform {
   required_version = ">=0.14.5"
   backend "gcs" {
-    bucket  = "arikkfir-terraform"
-    prefix  = "global"
+    bucket  = "arikkfir-devops"
+    prefix  = "terraform/global"
   }
   required_providers {
     google = {
