@@ -1,7 +1,6 @@
 terraform {
   required_version = ">=0.14.5"
   backend "gcs" {
-    project = "arikkfir"
     bucket  = "arikkfir-terraform"
     prefix  = "global"
   }
