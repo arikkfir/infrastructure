@@ -3,12 +3,6 @@ availableSecrets:
   secretManager:
     - versionName: projects/arikkfir/secrets/github-accesstoken/versions/latest
       env: GITHUB_TOKEN
-substitutions:
-  _CLUSTER_NAME: primary
-  _CLUSTER_ZONE: europe-west3-a
-  _REPO_OWNER: $(push.repository.owner.name)
-  _FLUX_REPO_PATH: kubernetes
-  _FLUX_NAMESPACE: flux-system
 steps:
   - name: hashicorp/terraform:0.14.5
     args: [init]
@@ -17,13 +11,17 @@ steps:
   - name: gcr.io/kaniko-project/executor:latest
     args: ['--destination=gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}', '--cache=true', '--context=./tools/flux']
   - name: gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}
+    entrypoint: bash
+    args:
+      - -c
+      - |-
+        gcloud container clusters get-credentials "--zone=${_CLUSTER_ZONE}" "${_CLUSTER_NAME}"
+        if [[ "$$(kubectl get namespaces | grep -c flux-system)" == "0" ]]; then
+          flux bootstrap github --personal \
+                                --owner=arikkfir \
+                                --repository=${REPO_NAME} \
+                                --branch=${BRANCH_NAME} \
+                                --path=kubernetes \
+                                --namespace=flux-system
+        fi
     secretEnv: [GITHUB_TOKEN]
-    env:
-      - MODE=apply
-      - CLUSTER_NAME=${_CLUSTER_NAME}
-      - CLUSTER_ZONE=${_CLUSTER_ZONE}
-      - REPO_OWNER=${_REPO_OWNER}
-      - REPO_NAME=${REPO_NAME}
-      - REPO_BRANCH=${BRANCH_NAME}
-      - REPO_PATH=${_FLUX_REPO_PATH}
-      - NAMESPACE=${_FLUX_NAMESPACE}
