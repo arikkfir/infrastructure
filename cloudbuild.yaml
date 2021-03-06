@@ -8,14 +8,17 @@ steps:
     args: [init]
   - name: hashicorp/terraform:0.14.5
     args: [apply, -input=false, -lock-timeout=180s, -auto-approve]
+  - name: hashicorp/terraform:0.14.5
+    entrypoint: sh
+    args: ['-euxc', 'terraform output -json > tf-outputs.json']
   - name: gcr.io/kaniko-project/executor:latest
     args: ['--destination=gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}', '--cache=true', '--context=./tools/flux']
   - name: gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}
     entrypoint: bash
     args:
-      - -c
+      - -euxc
       - |-
-        gcloud container clusters get-credentials "--zone=${_CLUSTER_ZONE}" "${_CLUSTER_NAME}"
+        gcloud container clusters get-credentials --zone=europe-west3-a primary
         if [[ "$$(kubectl get namespaces | grep -c flux-system)" == "0" ]]; then
           flux bootstrap github --personal \
                                 --owner=arikkfir \
