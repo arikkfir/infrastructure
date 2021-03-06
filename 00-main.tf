@@ -16,6 +16,14 @@ terraform {
   }
 }
 
+provider "google" {
+  project = "arikkfir"
+}
+
+provider "google-beta" {
+  project = "arikkfir"
+}
+
 variable "billing_account" {
   type = string
   description = "Billing account ID"
