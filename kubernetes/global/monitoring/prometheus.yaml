@@ -53,7 +53,7 @@ spec:
     # NODE-EXPORTER
     nodeExporter:
       enabled: true
-      resources: { }
+      resources:
         limits:
           cpu: 200m
           memory: 50Mi
