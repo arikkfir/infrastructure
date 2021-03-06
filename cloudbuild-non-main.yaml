@@ -7,7 +7,7 @@ substitutions:
   _CLUSTER_NAME: primary
   _CLUSTER_ZONE: europe-west3-a
   _REPO_OWNER: $(push.repository.owner.name)
-  _FLUX_REPO_PATH: kubernetes/flux-system
+  _FLUX_REPO_PATH: kubernetes
   _FLUX_NAMESPACE: flux-system
 steps:
   - name: hashicorp/terraform:0.14.5
