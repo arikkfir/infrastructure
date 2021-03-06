@@ -14,16 +14,21 @@ set -euo pipefail
 
 gcloud container clusters get-credentials "--zone=${CLUSTER_ZONE}" "${CLUSTER_NAME}"
 if [[ "${MODE}" == "apply" ]]; then
-  flux bootstrap github \
-    --personal \
-    "--owner=${REPO_OWNER}" \
-    "--repository=${REPO_NAME}" \
-    "--branch=${REPO_BRANCH}" \
-    "--path=${REPO_PATH}" \
-    "--namespace=${NAMESPACE}"
+  if [[ "$(kubectl get namespaces | grep -c flux-system)" == "0" ]]; then
+    flux bootstrap github \
+      "--personal" \
+      "--owner=${REPO_OWNER}" \
+      "--repository=${REPO_NAME}" \
+      "--branch=${REPO_BRANCH}" \
+      "--path=${REPO_PATH}" \
+      "--namespace=${NAMESPACE}"
+  else
+    echo "Flux appears to be already installed, verifying..."
+    flux check "--namespace=${NAMESPACE}"
+  fi
 else
   echo flux bootstrap github \
-    --personal \
+    "--personal" \
     "--owner=${REPO_OWNER}" \
     "--repository=${REPO_NAME}" \
     "--branch=${REPO_BRANCH}" \
