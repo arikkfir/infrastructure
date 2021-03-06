@@ -8,12 +8,12 @@
 [[ -z "${REPO_BRANCH}" ]] || (echo "REPO_BRANCH is missing" >&2 && exit 1)
 [[ -z "${REPO_PATH}" ]] || (echo "REPO_PATH is missing" >&2 && exit 1)
 [[ -z "${NAMESPACE}" ]] || (echo "NAMESPACE is missing" >&2 && exit 1)
-[[ "${NAMESPACE}" == "main" ]] || (echo "Ignoring non-main namespace ('${NAMESPACE}')" >&2 && exit 0)
+[[ "${MODE}" == "apply" ]] || export MODE="preview"
 
-set -exuo pipefail
+set -euo pipefail
 
 gcloud container clusters get-credentials "--zone=${CLUSTER_ZONE}" "${CLUSTER_NAME}"
-if [[ "${NAMESPACE}" == "main" ]]; then
+if [[ "${MODE}" == "apply" ]]; then
   flux bootstrap github \
     --personal \
     "--owner=${REPO_OWNER}" \
@@ -22,7 +22,6 @@ if [[ "${NAMESPACE}" == "main" ]]; then
     "--path=${REPO_PATH}" \
     "--namespace=${NAMESPACE}"
 else
-  echo "Simulating Flux setup (non-main namespace: '${NAMESPACE}')" >&2
   echo flux bootstrap github \
     --personal \
     "--owner=${REPO_OWNER}" \

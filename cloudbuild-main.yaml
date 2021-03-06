@@ -19,6 +19,7 @@ steps:
   - name: gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}
     secretEnv: [GITHUB_TOKEN]
     env:
+      - MODE=apply
       - CLUSTER_NAME=${_CLUSTER_NAME}
       - CLUSTER_ZONE=${_CLUSTER_ZONE}
       - REPO_OWNER=${_REPO_OWNER}
