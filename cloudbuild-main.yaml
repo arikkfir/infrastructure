@@ -13,7 +13,7 @@ steps:
   - name: hashicorp/terraform:0.14.5
     args: [init]
   - name: hashicorp/terraform:0.14.5
-    args: [apply, -input=false, -lock-timeout=10s, -auto-approve]
+    args: [apply, -input=false, -lock-timeout=120s, -auto-approve]
   - name: gcr.io/kaniko-project/executor:latest
     args: ['--destination=gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}', '--cache=true', '--context=./tools/flux']
   - name: gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}
