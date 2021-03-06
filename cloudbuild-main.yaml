@@ -4,3 +4,10 @@ steps:
     args: [init]
   - name: hashicorp/terraform:0.14.5
     args: [apply, -input=false, -lock-timeout=10s, -auto-approve]
+  - name: gcr.io/arikkfir/kustomize:v3.9.1
+    dir: kubernetes
+    args: [ build ]
+    env:
+      - MODE=apply
+      - CLUSTER_NAME=primary
+      - CLUSTER_ZONE=europe-west3-a

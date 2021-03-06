@@ -1,6 +1,13 @@
 timeout: 3600s
 steps:
   - name: hashicorp/terraform:0.14.5
-    args: [init]
+    args: [ init ]
   - name: hashicorp/terraform:0.14.5
-    args: [plan, -input=false, -lock-timeout=10s]
+    args: [ plan, -input=false, -lock-timeout=10s ]
+  - name: gcr.io/arikkfir/kustomize:v3.9.1
+    dir: kubernetes
+    args: [ build ]
+    env:
+      - MODE=preview
+      - CLUSTER_NAME=primary
+      - CLUSTER_ZONE=europe-west3-a
