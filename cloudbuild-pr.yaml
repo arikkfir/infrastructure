@@ -11,7 +11,7 @@ substitutions:
   _FLUX_NAMESPACE: flux-system
 steps:
   - name: hashicorp/terraform:0.14.5
-    args: [init]
+    args: [ init ]
   - name: hashicorp/terraform:0.14.5
     args: [plan, -input=false, -lock-timeout=10s]
   - name: gcr.io/kaniko-project/executor:latest
