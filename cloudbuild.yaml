@@ -27,4 +27,9 @@ steps:
                                 --path=kubernetes \
                                 --namespace=flux-system
         fi
+        flux create kustomization global --source=GitRepository/flux-system \
+                                         --path=kubernetes/global \
+                                         --prune \
+                                         --interval=5m \
+                                         --validation=client
     secretEnv: [GITHUB_TOKEN]

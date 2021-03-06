@@ -1,0 +1,96 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: prometheus-community/prometheus
+      version: '13.4.0'
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: monitoring
+      interval: 1m
+  values:
+    # ALERT-MANAGER
+    alertmanager:
+      enabled: true
+      persistentVolume:
+        size: 2Gi
+      resources:
+        limits:
+          cpu: 10m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+    # CONFIGMAP-RELOAD
+    configmapReload:
+      prometheus:
+        enabled: true
+        resources:
+          limits:
+            cpu: 10m
+            memory: 32Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+      alertmanager:
+        enabled: true
+        resources:
+          limits:
+            cpu: 10m
+            memory: 32Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+    # KUBE-STATE-METRICS
+    kubeStateMetrics:
+      enabled: true
+    # NODE-EXPORTER
+    nodeExporter:
+      enabled: true
+      resources: { }
+        limits:
+          cpu: 200m
+          memory: 50Mi
+        requests:
+          cpu: 100m
+          memory: 30Mi
+    # PROMETHEUS-SERVER
+    server:
+      enabled: true
+      global:
+        scrape_interval: 1m
+        scrape_timeout: 10s
+        evaluation_interval: 1m
+      persistentVolume:
+        enabled: true
+        size: 8Gi
+        storageClass: ssd
+      # TODO: what does this mean? 'alertmanagers: [ ]'
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 500m
+          memory: 512Mi
+      retention: "30d"
+    # PUSH-GATEWAY
+    pushgateway:
+      enabled: true
+      resources:
+        limits:
+          cpu: 10m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+      persistentVolume:
+        enabled: false
+        size: 2Gi
+        storageClass: ssd
