@@ -1,8 +1,8 @@
 resource "google_compute_network" "gke" {
+  project = google_project.project.project_id
   depends_on = [
     google_project_service.apis
   ]
-  project = google_project.project.project_id
   name = "gke"
   description = "GKE VPC"
   auto_create_subnetworks = false
@@ -43,10 +43,10 @@ resource "google_project_iam_member" "kubernetes_metrics_writer" {
 }
 
 resource "google_compute_address" "gke_ingress" {
+  project = google_project.project.project_id
   depends_on = [
     google_project_service.apis
   ]
-  project = google_project.project.project_id
   name = "gke-ingress"
   address_type = "EXTERNAL"
   network_tier = "PREMIUM"
@@ -55,8 +55,8 @@ resource "google_compute_address" "gke_ingress" {
 }
 
 resource "google_container_cluster" "primary" {
-  provider = google-beta
   project = google_project.project.project_id
+  provider = google-beta
   name = "primary"
   description = "Primary"
   location = var.gcp_zone

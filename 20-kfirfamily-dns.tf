@@ -1,6 +1,7 @@
 resource "google_dns_managed_zone" "kfirfamily-zone" {
-  name        = "kfirfamily-zone"
-  dns_name    = "kfirfamily.com."
+  project = google_project.project.project_id
+  name = "kfirfamily-zone"
+  dns_name = "kfirfamily.com."
   visibility = "public"
 }
 
