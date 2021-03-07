@@ -14,7 +14,7 @@ steps:
     entrypoint: sh
     args:
       - -euxc
-      - terraform output -json | tee tf-outputs.json
+      - terraform output -raw gke_ingress_external_ip | tee gke_ingress_external_ip.out
   - name: kroniak/ssh-client
     entrypoint: bash
     dir: /root/.ssh
@@ -35,8 +35,9 @@ steps:
     entrypoint: sh
     args:
       - -euc
-      - yq e '.gke_ingress_external_ip.value' ../../../../tf-outputs.json
-      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(yq e '.gke_ingress_external_ip.value' ../../../../tf-outputs.json)\"" traefik.yaml
+      - ln -s ../../../../gke_ingress_external_ip.out gke_ingress_external_ip.out
+      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(cat gke_ingress_external_ip.out)\"" traefik.yaml
+      - cat traefik.yaml
   - name: alpine/git
     dir: clone
     args: [add, .]
