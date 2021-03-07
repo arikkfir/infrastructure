@@ -35,9 +35,8 @@ steps:
     entrypoint: sh
     args:
       - -euc
-      - ln -s ../../../../gke_ingress_external_ip.out gke_ingress_external_ip.out
-      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(cat gke_ingress_external_ip.out)\"" traefik.yaml
-      - cat traefik.yaml
+      - |-
+        yq e -i ".spec.values.service.loadBalancerIP = \"$$(cat ../../../../gke_ingress_external_ip.out)\"" traefik.yaml
   - name: alpine/git
     dir: clone
     args: [add, .]
