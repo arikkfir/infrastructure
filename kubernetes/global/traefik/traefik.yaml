@@ -39,9 +39,9 @@ spec:
     service:
       enabled: true
       type: LoadBalancer
-      loadBalancerIP: "1.2.3.4"
+      #loadBalancerIP: "1.2.3.4"
       loadBalancerSourceRanges:
-        - 46.116.50.28
+        - "46.116.50.28/32"
     autoscaling:
       enabled: true
       minReplicas: 1
