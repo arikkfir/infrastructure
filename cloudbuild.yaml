@@ -33,7 +33,7 @@ steps:
     entrypoint: sh
     args:
       - -euc
-      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(yq e '.gke_ingress_external_ip.value' ../../../outputs.json)\"" traefik.yaml
+      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(yq e '.gke_ingress_external_ip.value' ../../../tf-outputs.json)\"" traefik.yaml
   - name: alpine/git
     dir: clone
     args: [add, .]
