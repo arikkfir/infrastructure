@@ -12,7 +12,9 @@ steps:
     args: [apply, -input=false, -lock-timeout=180s, -auto-approve]
   - name: hashicorp/terraform:0.14.5
     entrypoint: sh
-    args: ['-euxc', 'terraform output -json > tf-outputs.json']
+    args:
+      - -euxc
+      - terraform output -json | tee tf-outputs.json
   - name: kroniak/ssh-client
     entrypoint: bash
     dir: /root/.ssh
@@ -33,6 +35,7 @@ steps:
     entrypoint: sh
     args:
       - -euc
+      - yq e '.gke_ingress_external_ip.value' ../../../tf-outputs.json
       - yq e -i ".spec.values.service.loadBalancerIP = \"$$(yq e '.gke_ingress_external_ip.value' ../../../tf-outputs.json)\"" traefik.yaml
   - name: alpine/git
     dir: clone
