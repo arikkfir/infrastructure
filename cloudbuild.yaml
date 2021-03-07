@@ -24,7 +24,7 @@ steps:
       - name: ssh
         path: /root/.ssh
   - name: alpine/git
-    args: [clone, git@github.com:trustdome/arik-infrastructure.git, '--branch=${BRANCH_NAME}', clone]
+    args: [clone, git@github.com:arikkfir/infrastructure.git, '--branch=${BRANCH_NAME}', clone]
     volumes:
       - name: ssh
         path: /root/.ssh
