@@ -3,7 +3,6 @@ apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: HelmRepository
 metadata:
   name: prometheus-community
-  namespace: monitoring
 spec:
   interval: 30m
   url: https://prometheus-community.github.io/helm-charts
@@ -12,7 +11,6 @@ apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: HelmRepository
 metadata:
   name: kube-state-metrics
-  namespace: monitoring
 spec:
   interval: 30m
   url: https://kubernetes.github.io/kube-state-metrics
