@@ -54,6 +54,10 @@ resource "google_compute_address" "gke_ingress" {
   description = "GKE Ingress"
 }
 
+output "gke_ingress_external_ip" {
+  value = google_compute_address.gke_ingress.address
+}
+
 resource "google_container_cluster" "primary" {
   project = google_project.project.project_id
   provider = google-beta

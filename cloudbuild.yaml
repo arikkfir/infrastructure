@@ -3,6 +3,8 @@ availableSecrets:
   secretManager:
     - versionName: projects/arikkfir/secrets/github-accesstoken/versions/latest
       env: GITHUB_TOKEN
+    - versionName: projects/arikkfir/secrets/github-ssh-key/versions/latest
+      env: GITHUB_SSH_KEY
 steps:
   - name: hashicorp/terraform:0.14.5
     args: [init]
@@ -11,6 +13,43 @@ steps:
   - name: hashicorp/terraform:0.14.5
     entrypoint: sh
     args: ['-euxc', 'terraform output -json > tf-outputs.json']
+  - name: kroniak/ssh-client
+    entrypoint: bash
+    dir: /root/.ssh
+    args:
+      - -euc
+      - echo "$${GITHUB_SSH_KEY}" > id_rsa && chmod 600 id_rsa && ssh-keyscan -t rsa github.com > known_hosts
+    secretEnv: [GITHUB_SSH_KEY]
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - name: alpine/git
+    args: [clone, git@github.com:trustdome/arik-infrastructure.git, '--branch=${BRANCH_NAME}', clone]
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - name: mikefarah/yq
+    dir: clone/kubernetes/traefik
+    entrypoint: sh
+    args:
+      - -euc
+      - yq e -i ".spec.values.service.loadBalancerIP = \"$$(yq e '.gke_ingress_external_ip.value' ../../../outputs.json)\"" traefik.yaml
+  - name: alpine/git
+    dir: clone
+    args: [add, .]
+  - name: alpine/git
+    dir: clone
+    entrypoint: sh
+    args: ['-eu', '-c', 'git diff-index --quiet HEAD || git commit -m "Update infrastructure"']
+    env:
+      - GIT_COMMITTER_EMAIL=arik@kfirs.com
+      - GIT_AUTHOR_EMAIL=arik@kfirs.com
+  - name: alpine/git
+    dir: clone
+    args: [push]
+    volumes:
+      - name: ssh
+        path: /root/.ssh
   - name: gcr.io/kaniko-project/executor:latest
     args: ['--destination=gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}', '--cache=true', '--context=./tools/flux']
   - name: gcr.io/${PROJECT_ID}/${REPO_NAME}/flux:${COMMIT_SHA}
