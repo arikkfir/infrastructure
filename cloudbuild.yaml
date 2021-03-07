@@ -40,7 +40,7 @@ steps:
   - name: alpine/git
     dir: clone
     entrypoint: sh
-    args: ['-euc', 'git diff-index --quiet HEAD || git commit -m "Update infrastructure"']
+    args: [-euc, 'git diff-index --quiet HEAD || git commit -m "Update infrastructure"']
     env:
       - GIT_COMMITTER_EMAIL=arik@kfirs.com
       - GIT_AUTHOR_EMAIL=arik@kfirs.com
