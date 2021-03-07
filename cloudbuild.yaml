@@ -29,7 +29,7 @@ steps:
       - name: ssh
         path: /root/.ssh
   - name: mikefarah/yq
-    dir: clone/kubernetes/traefik
+    dir: clone/kubernetes/global/traefik
     entrypoint: sh
     args:
       - -euc
