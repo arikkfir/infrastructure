@@ -39,7 +39,7 @@ spec:
     service:
       enabled: true
       type: LoadBalancer
-      loadBalancerIP: "1.2.3.4"
+      loadBalancerIP: ""
       loadBalancerSourceRanges:
         - "46.116.50.28/32"
     autoscaling:
