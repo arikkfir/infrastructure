@@ -59,7 +59,7 @@ spec:
       enabled: true
       type: LoadBalancer
       loadBalancerSourceRanges:
-        - "46.116.50.28/32"
+        - "46.116.44.190/32"
     autoscaling:
       enabled: true
       minReplicas: 1
