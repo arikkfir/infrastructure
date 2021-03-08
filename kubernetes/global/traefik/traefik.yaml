@@ -31,6 +31,7 @@ spec:
               group: ""
               version: v1
               kind: Service
+              name: traefik
   values:
     deployment:
       enabled: true
