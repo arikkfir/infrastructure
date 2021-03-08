@@ -19,6 +19,18 @@ spec:
         name: traefik
         namespace: traefik
       interval: 1m
+  releaseName: traefik
+  postRenderers:
+    - kustomize:
+        patchesJson6902:
+          - patch:
+              - op: replace
+                path: /spec/loadBalancerIP
+                value: "35.198.167.23"
+            target:
+              group: ""
+              version: v1
+              kind: Service
   values:
     deployment:
       enabled: true
@@ -45,7 +57,6 @@ spec:
     service:
       enabled: true
       type: LoadBalancer
-      loadBalancerIP: "35.198.167.23"
       loadBalancerSourceRanges:
         - "46.116.50.28/32"
     autoscaling:
