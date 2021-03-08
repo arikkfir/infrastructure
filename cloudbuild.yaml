@@ -36,7 +36,7 @@ steps:
     args:
       - -euc
       - |-
-        yq e -i ".spec.values.service.loadBalancerIP = \"$$(cat ../../../../gke_ingress_external_ip.out)\"" traefik.yaml
+        yq e -i ".spec.postRenderers[0].kustomize.patchesJson6902[0].patch[0].value = \"$$(cat ../../../../gke_ingress_external_ip.out)\"" traefik.yaml
   - name: alpine/git
     dir: clone
     args: [add, .]
