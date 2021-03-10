@@ -6,4 +6,3 @@ resources:
   - cloudflare-api-token-secret.yaml
   - helm-repository.yaml
   - helm-release.yaml
-  - le-cluster-issuer.yaml
