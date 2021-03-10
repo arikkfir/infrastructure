@@ -6,4 +6,3 @@ resources:
   - traefik
   - sealed-secrets
   - cert-manager
-  - dns
