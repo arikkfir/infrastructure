@@ -1,0 +1,130 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy.yml
+      - "*.tf"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -exuo pipefail {0}
+
+env:
+  FLUXCD_VERSION: 2.0.0-rc.1
+  GCP_SERVICE_ACCOUNT: infrastructure@arik-kfir.iam.gserviceaccount.com
+  GCP_WORKLOAD_IDENTITY_PROVIDER: projects/887552287733/locations/global/workloadIdentityPools/github-actions/providers/default
+  GCP_CLI_VERSION: 426.0.0
+  TERRAFORM_VERSION: 1.4.3
+  TF_IN_AUTOMATION: true
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+
+jobs:
+
+  plan-terraform:
+    name: Plan Terraform
+    needs: format-terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - run: |
+          terraform fmt -check -recursive -no-color -diff
+          terraform init -input=false
+          terraform plan -input=false -lock-timeout=180s -out tfplan
+          tar -c -j -v -f tfplan.tar.bz2 .terraform .terraform.lock.hcl *.tf tfplan
+      - uses: actions/upload-artifact@v3
+        with:
+          name: plan
+          path: tfplan.tar.bz2
+          if-no-files-found: error
+          retention-days: 1
+
+  apply-terraform:
+    name: Apply Terraform
+    needs: plan-terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: production
+    outputs:
+      gke-cluster-name: ${{ steps.apply.outputs.gke-cluster-name }}
+      gke-cluster-location: ${{ steps.apply.outputs.gke-cluster-location }}
+    steps:
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          install_components: gke-gcloud-auth-plugin
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: plan
+      - run: |
+          tar xjvf tfplan.tar.bz2
+          terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
+          echo "gke-cluster-name=$(terraform output -raw gke_cluster_name)" >> $GITHUB_OUTPUT
+          echo "gke-cluster-location=$(terraform output -raw gke_cluster_location)" >> $GITHUB_OUTPUT
+        id: apply
+
+  apply-fluxcd:
+    name: Apply FluxCD
+    needs: apply-terraform
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v0
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.gke-cluster-name }}
+          location: ${{ needs.apply-terraform.outputs.gke-cluster-location }}
+      - uses: fluxcd/flux2/action@main
+        with:
+          version: ${{ env.FLUXCD_VERSION }}
+      - run: |
+          echo flux bootstrap github \
+            --interval 5m \
+            --owner arik-kfir \
+            --repository delivery \
+            --branch main \
+            --path clusters/${GKE_CLUSTER_NAME} \
+            --personal \
+            --reconcile \
+            --author-email flux@kfirs.com \
+            --author-name "FluxCD Bot" \
+            --timeout 30m
+        env:
+          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.gke-cluster-name }}
+          GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
