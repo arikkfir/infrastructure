@@ -116,7 +116,7 @@ resource "google_container_cluster" "main" {
     node_config {
       disk_size_gb = 100
       disk_type    = "pd-standard"
-      labels       = {
+      labels = {
         "gke.kfirs.com/purpose" : "system"
       }
       machine_type = "e2-standard-4"
@@ -161,7 +161,7 @@ resource "google_container_cluster" "main" {
     node_config {
       disk_size_gb = 100
       disk_type    = "pd-standard"
-      labels       = {
+      labels = {
         "gke.kfirs.com/purpose" : "workloads"
       }
       machine_type = "e2-standard-4"

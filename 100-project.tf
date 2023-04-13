@@ -12,7 +12,7 @@ data "google_compute_default_service_account" "arik-kfir" {
 
 data "google_compute_network" "default" {
   project = data.google_project.arik-kfir.project_id
-  name = "default"
+  name    = "default"
 }
 
 resource "google_project_service" "apis" {
