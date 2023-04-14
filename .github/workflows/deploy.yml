@@ -45,11 +45,10 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v1
         with:
           version: ${{ env.GCP_CLI_VERSION }}
-      - run: |
-          terraform fmt -check -recursive -no-color -diff
-          terraform init -input=false
-          terraform plan -input=false -lock-timeout=180s -out tfplan
-          tar -c -j -v -f tfplan.tar.bz2 .terraform .terraform.lock.hcl *.tf tfplan
+      - run: terraform fmt -check -recursive -no-color -diff
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -lock-timeout=180s -out tfplan
+      - run: tar -c -j -v -f tfplan.tar.bz2 .terraform .terraform.lock.hcl *.tf tfplan
       - uses: actions/upload-artifact@v3
         with:
           name: plan
@@ -64,10 +63,10 @@ jobs:
     timeout-minutes: 120
     environment: production
     outputs:
-      main-gke-cluster-name: ${{ steps.apply.outputs.main-gke-cluster-name }}
-      main-gke-cluster-location: ${{ steps.apply.outputs.main-gke-cluster-location }}
-      arc-gke-cluster-name: ${{ steps.apply.outputs.arc-gke-cluster-name }}
-      arc-gke-cluster-location: ${{ steps.apply.outputs.arc-gke-cluster-location }}
+      main-gke-cluster-name: ${{ steps.out.outputs.main-gke-cluster-name }}
+      main-gke-cluster-location: ${{ steps.out.outputs.main-gke-cluster-location }}
+      arc-gke-cluster-name: ${{ steps.out.outputs.arc-gke-cluster-name }}
+      arc-gke-cluster-location: ${{ steps.out.outputs.arc-gke-cluster-location }}
     steps:
       - uses: hashicorp/setup-terraform@v2
         with:
@@ -84,14 +83,14 @@ jobs:
         with:
           install_components: gke-gcloud-auth-plugin
           version: ${{ env.GCP_CLI_VERSION }}
-      - run: |
-          tar xjvf tfplan.tar.bz2
-          terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
+      - run: tar xjvf tfplan.tar.bz2
+      - run: terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
+      - id: out
+        run: |
           echo "main-gke-cluster-name=$(terraform output -raw main_gke_cluster_name)" >> $GITHUB_OUTPUT
           echo "main-gke-cluster-location=$(terraform output -raw main_gke_cluster_location)" >> $GITHUB_OUTPUT
           echo "arc-gke-cluster-name=$(terraform output -raw arc_gke_cluster_name)" >> $GITHUB_OUTPUT
           echo "arc-gke-cluster-location=$(terraform output -raw arc_gke_cluster_location)" >> $GITHUB_OUTPUT
-        id: apply
 
   apply-main-fluxcd:
     name: Apply FluxCD in "main"
