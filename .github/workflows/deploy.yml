@@ -161,7 +161,7 @@ jobs:
             --interval 5m \
             --owner arik-kfir \
             --repository delivery \
-            --branch arc \
+            --branch main \
             --path clusters/${GKE_CLUSTER_NAME} \
             --personal \
             --reconcile \
