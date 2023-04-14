@@ -113,7 +113,7 @@ jobs:
         with:
           version: ${{ env.FLUXCD_VERSION }}
       - run: |
-          echo flux bootstrap github \
+          flux bootstrap github \
             --interval 5m \
             --owner arik-kfir \
             --repository delivery \
