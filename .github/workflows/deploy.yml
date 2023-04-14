@@ -71,6 +71,9 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
+      - uses: actions/download-artifact@v3
+        with:
+          name: plan
       - uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -79,9 +82,6 @@ jobs:
         with:
           install_components: gke-gcloud-auth-plugin
           version: ${{ env.GCP_CLI_VERSION }}
-      - uses: actions/download-artifact@v3
-        with:
-          name: plan
       - run: |
           tar xjvf tfplan.tar.bz2
           terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
