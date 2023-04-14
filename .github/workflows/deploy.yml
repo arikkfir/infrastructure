@@ -64,8 +64,10 @@ jobs:
     timeout-minutes: 120
     environment: production
     outputs:
-      gke-cluster-name: ${{ steps.apply.outputs.gke-cluster-name }}
-      gke-cluster-location: ${{ steps.apply.outputs.gke-cluster-location }}
+      main-gke-cluster-name: ${{ steps.apply.outputs.main-gke-cluster-name }}
+      main-gke-cluster-location: ${{ steps.apply.outputs.main-gke-cluster-location }}
+      arc-gke-cluster-name: ${{ steps.apply.outputs.arc-gke-cluster-name }}
+      arc-gke-cluster-location: ${{ steps.apply.outputs.arc-gke-cluster-location }}
     steps:
       - uses: hashicorp/setup-terraform@v2
         with:
@@ -85,12 +87,14 @@ jobs:
       - run: |
           tar xjvf tfplan.tar.bz2
           terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
-          echo "gke-cluster-name=$(terraform output -raw gke_cluster_name)" >> $GITHUB_OUTPUT
-          echo "gke-cluster-location=$(terraform output -raw gke_cluster_location)" >> $GITHUB_OUTPUT
+          echo "main-gke-cluster-name=$(terraform output -raw main_gke_cluster_name)" >> $GITHUB_OUTPUT
+          echo "main-gke-cluster-location=$(terraform output -raw main_gke_cluster_location)" >> $GITHUB_OUTPUT
+          echo "arc-gke-cluster-name=$(terraform output -raw arc_gke_cluster_name)" >> $GITHUB_OUTPUT
+          echo "arc-gke-cluster-location=$(terraform output -raw arc_gke_cluster_location)" >> $GITHUB_OUTPUT
         id: apply
 
-  apply-fluxcd:
-    name: Apply FluxCD
+  apply-main-fluxcd:
+    name: Apply FluxCD in "main"
     needs: apply-terraform
     runs-on: ubuntu-latest
     permissions:
@@ -107,8 +111,8 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - uses: google-github-actions/get-gke-credentials@v0
         with:
-          cluster_name: ${{ needs.apply-terraform.outputs.gke-cluster-name }}
-          location: ${{ needs.apply-terraform.outputs.gke-cluster-location }}
+          cluster_name: ${{ needs.apply-terraform.outputs.main-gke-cluster-name }}
+          location: ${{ needs.apply-terraform.outputs.main-gke-cluster-location }}
       - uses: fluxcd/flux2/action@main
         with:
           version: ${{ env.FLUXCD_VERSION }}
@@ -126,5 +130,45 @@ jobs:
             --timeout 30m \
             --version=v2.0.0-rc.1
         env:
-          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.gke-cluster-name }}
+          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main-gke-cluster-name }}
+          GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
+
+  apply-arc-fluxcd:
+    name: Apply FluxCD in "arc"
+    needs: apply-terraform
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v0
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.arc-gke-cluster-name }}
+          location: ${{ needs.apply-terraform.outputs.arc-gke-cluster-location }}
+      - uses: fluxcd/flux2/action@main
+        with:
+          version: ${{ env.FLUXCD_VERSION }}
+      - run: |
+          flux bootstrap github \
+            --interval 5m \
+            --owner arik-kfir \
+            --repository delivery \
+            --branch arc \
+            --path clusters/${GKE_CLUSTER_NAME} \
+            --personal \
+            --reconcile \
+            --author-email flux@kfirs.com \
+            --author-name "FluxCD Bot" \
+            --timeout 30m \
+            --version=v2.0.0-rc.1
+        env:
+          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.arc-gke-cluster-name }}
           GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
