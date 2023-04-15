@@ -24,7 +24,7 @@ resource "google_organization_iam_member" "delivery" {
 resource "google_project_iam_member" "delivery" {
   for_each = toset([
     "roles/container.clusterViewer",
-    "roles/container.viewer",
+    "roles/container.developer",
   ])
   project = data.google_project.arik-kfir.project_id
   role    = each.key
