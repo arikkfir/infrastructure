@@ -23,11 +23,20 @@ resource "google_service_account_iam_member" "cert-manager-webhook_workload_iden
   member             = "serviceAccount:${data.google_project.arik-kfir.project_id}.svc.id.goog[cert-manager/cert-manager-webhook]"
 }
 
-resource "google_project_iam_member" "cert-manager" {
+resource "google_project_iam_member" "arik-kfir_cert-manager" {
   for_each = toset([
     "roles/dns.admin",
   ])
   project = data.google_project.arik-kfir.project_id
+  role    = each.key
+  member  = "serviceAccount:${google_service_account.cert-manager.email}"
+}
+
+resource "google_project_iam_member" "arikkfir_cert-manager" {
+  for_each = toset([
+    "roles/dns.admin",
+  ])
+  project = data.google_project.arikkfir.project_id
   role    = each.key
   member  = "serviceAccount:${google_service_account.cert-manager.email}"
 }
