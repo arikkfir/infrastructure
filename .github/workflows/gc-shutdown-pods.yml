@@ -6,7 +6,7 @@ on:
 
 defaults:
   run:
-    shell: bash -euo pipefail {0}
+    shell: bash -exuo pipefail {0}
 
 env:
   GCP_SERVICE_ACCOUNT: infrastructure@arik-kfir.iam.gserviceaccount.com
