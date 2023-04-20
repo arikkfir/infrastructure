@@ -38,8 +38,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: which node
-      - run: node --version
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
@@ -73,6 +71,9 @@ jobs:
       arc-gke-cluster-name: ${{ steps.out.outputs.arc-gke-cluster-name }}
       arc-gke-cluster-location: ${{ steps.out.outputs.arc-gke-cluster-location }}
     steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
