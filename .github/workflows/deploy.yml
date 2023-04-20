@@ -65,11 +65,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 120
     environment: production
-    outputs:
-      main-gke-cluster-name: ${{ steps.out.outputs.main-gke-cluster-name }}
-      main-gke-cluster-location: ${{ steps.out.outputs.main-gke-cluster-location }}
-      arc-gke-cluster-name: ${{ steps.out.outputs.arc-gke-cluster-name }}
-      arc-gke-cluster-location: ${{ steps.out.outputs.arc-gke-cluster-location }}
     steps:
       - uses: actions/setup-node@v3
         with:
@@ -91,20 +86,19 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar xjvf tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=180s -auto-approve tfplan
-      - id: out
-        run: |
-          echo "main-gke-cluster-name=$(terraform output -raw main_gke_cluster_name)" >> $GITHUB_OUTPUT
-          echo "main-gke-cluster-location=$(terraform output -raw main_gke_cluster_location)" >> $GITHUB_OUTPUT
-          echo "arc-gke-cluster-name=$(terraform output -raw arc_gke_cluster_name)" >> $GITHUB_OUTPUT
-          echo "arc-gke-cluster-location=$(terraform output -raw arc_gke_cluster_location)" >> $GITHUB_OUTPUT
 
-  apply-main-fluxcd:
-    name: Apply FluxCD in "main"
+  apply-fluxcd:
+    name: Apply FluxCD in "${{ matrix.cluster_name }}" cluster
     needs: apply-terraform
     runs-on: self-hosted
     permissions:
       contents: write
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster_name: [arc, main]
+        cluster_location: [me-west1-a]
     steps:
       - uses: actions/checkout@v3
       - uses: google-github-actions/auth@v1
@@ -116,8 +110,8 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - uses: google-github-actions/get-gke-credentials@v0
         with:
-          cluster_name: ${{ needs.apply-terraform.outputs.main-gke-cluster-name }}
-          location: ${{ needs.apply-terraform.outputs.main-gke-cluster-location }}
+          cluster_name: ${{ matrix.cluster_name }}
+          location: ${{ matrix.cluster_location }}
       - uses: fluxcd/flux2/action@main
         with:
           version: ${{ env.FLUXCD_VERSION }}
@@ -127,7 +121,7 @@ jobs:
             --owner arik-kfir \
             --repository delivery \
             --branch main \
-            --path clusters/${GKE_CLUSTER_NAME} \
+            --path clusters/${{ matrix.cluster_name }} \
             --personal \
             --reconcile \
             --author-email flux@kfirs.com \
@@ -135,45 +129,4 @@ jobs:
             --timeout 30m \
             --version=v2.0.0-rc.1
         env:
-          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main-gke-cluster-name }}
-          GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
-
-  apply-arc-fluxcd:
-    name: Apply FluxCD in "arc"
-    needs: apply-terraform
-    runs-on: self-hosted
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v0
-        with:
-          cluster_name: ${{ needs.apply-terraform.outputs.arc-gke-cluster-name }}
-          location: ${{ needs.apply-terraform.outputs.arc-gke-cluster-location }}
-      - uses: fluxcd/flux2/action@main
-        with:
-          version: ${{ env.FLUXCD_VERSION }}
-      - run: |
-          flux bootstrap github \
-            --interval 5m \
-            --owner arik-kfir \
-            --repository delivery \
-            --branch main \
-            --path clusters/${GKE_CLUSTER_NAME} \
-            --personal \
-            --reconcile \
-            --author-email flux@kfirs.com \
-            --author-name "FluxCD Bot" \
-            --timeout 30m \
-            --version=v2.0.0-rc.1
-        env:
-          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.arc-gke-cluster-name }}
           GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
