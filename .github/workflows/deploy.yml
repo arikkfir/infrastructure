@@ -129,7 +129,7 @@ jobs:
           EOF
             kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
           else
-            kubectl create -n default configmap/cluster-info \
+            kubectl create -n default configmap cluster-info \
               --from-literal=name=${GKE_CLUSTER_NAME} \
               --from-literal=region=${GKE_CLUSTER_REGION} \
               --from-literal=zone=${GKE_CLUSTER_ZONE}
