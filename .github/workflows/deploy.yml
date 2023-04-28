@@ -13,7 +13,6 @@ defaults:
     shell: bash -exuo pipefail {0}
 
 env:
-  FLUXCD_VERSION: 2.0.0-rc.1
   GCP_SERVICE_ACCOUNT: infrastructure@arik-kfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/887552287733/locations/global/workloadIdentityPools/github-actions/providers/default
   GCP_CLI_VERSION: 426.0.0
@@ -92,6 +91,8 @@ jobs:
     name: Apply FluxCD in "${{ matrix.cluster_name }}" cluster
     needs: apply-terraform
     runs-on: ubuntu-22.04
+    env:
+      FLUXCD_VERSION: 2.0.0-rc.1
     permissions:
       contents: write
       id-token: write
@@ -128,6 +129,6 @@ jobs:
             --author-email flux@kfirs.com \
             --author-name "FluxCD Bot" \
             --timeout 30m \
-            --version=v2.0.0-rc.1
+            --version=v${FLUXCD_VERSION}
         env:
           GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
