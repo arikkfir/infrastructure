@@ -28,7 +28,7 @@ jobs:
 
   plan-terraform:
     name: Plan Terraform
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     permissions:
       id-token: write
@@ -61,7 +61,7 @@ jobs:
   apply-terraform:
     name: Apply Terraform
     needs: plan-terraform
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     environment: production
     permissions:
@@ -91,7 +91,7 @@ jobs:
   apply-fluxcd:
     name: Apply FluxCD in "${{ matrix.cluster_name }}" cluster
     needs: apply-terraform
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
       id-token: write
