@@ -66,6 +66,7 @@ jobs:
     permissions:
       id-token: write
     outputs:
+      gcp_region: ${{ steps.out.outputs.gcp_region }}
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
     steps:
@@ -118,6 +119,25 @@ jobs:
         with:
           cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
           location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      - run: |
+          if kubectl get -n default configmap/cluster-info; then
+            cat > patch.yaml <<EOF
+            data:
+              name: ${GKE_CLUSTER_NAME}
+              region: ${GKE_CLUSTER_REGION}
+              zone: ${GKE_CLUSTER_ZONE}
+            EOF
+            kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
+          else
+            kubectl create -n default configmap/cluster-info \
+              --from-literal=name=${GKE_CLUSTER_NAME} \
+              --from-literal=region=${GKE_CLUSTER_REGION} \
+              --from-literal=zone=${GKE_CLUSTER_ZONE}
+          fi
+        env:
+          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          GKE_CLUSTER_REGION: ${{ needs.apply-terraform.outputs.gcp_region }}
+          GKE_CLUSTER_ZONE: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
       - uses: fluxcd/flux2/action@main
         with:
           version: ${{ env.FLUXCD_VERSION }}

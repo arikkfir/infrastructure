@@ -30,3 +30,7 @@ locals {
   gcp_zone_b = "${var.gcp_region}-b"
   gcp_zone_c = "${var.gcp_region}-c"
 }
+
+output "gcp_region" {
+  value = var.gcp_region
+}
