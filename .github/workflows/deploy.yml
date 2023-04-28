@@ -122,11 +122,11 @@ jobs:
       - run: |
           if kubectl get -n default configmap/cluster-info; then
             cat > patch.yaml <<EOF
-            data:
-              name: ${GKE_CLUSTER_NAME}
-              region: ${GKE_CLUSTER_REGION}
-              zone: ${GKE_CLUSTER_ZONE}
-            EOF
+          data:
+            name: ${GKE_CLUSTER_NAME}
+            region: ${GKE_CLUSTER_REGION}
+            zone: ${GKE_CLUSTER_ZONE}
+          EOF
             kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
           else
             kubectl create -n default configmap/cluster-info \
