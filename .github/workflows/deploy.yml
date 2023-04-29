@@ -124,15 +124,21 @@ jobs:
             cat > patch.yaml <<EOF
           data:
             name: ${GKE_CLUSTER_NAME}
+            gke_cluster_name: ${GKE_CLUSTER_NAME}
             region: ${GKE_CLUSTER_REGION}
+            gke_cluster_region: ${GKE_CLUSTER_REGION}
             zone: ${GKE_CLUSTER_ZONE}
+            gke_cluster_zone: ${GKE_CLUSTER_ZONE}
           EOF
             kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
           else
             kubectl create -n default configmap cluster-info \
               --from-literal=name=${GKE_CLUSTER_NAME} \
+              --from-literal=gke_cluster_name=${GKE_CLUSTER_NAME} \
               --from-literal=region=${GKE_CLUSTER_REGION} \
-              --from-literal=zone=${GKE_CLUSTER_ZONE}
+              --from-literal=gke_cluster_region=${GKE_CLUSTER_REGION} \
+              --from-literal=zone=${GKE_CLUSTER_ZONE} \
+              --from-literal=gke_cluster_zone=${GKE_CLUSTER_ZONE}
           fi
         env:
           GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
