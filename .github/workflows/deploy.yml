@@ -163,28 +163,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
           MAIN_GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
 
-  # TODO: change this to only trigger a workflow in "delivery" to decouple the link between them
   sync-delivery-repository:
     name: Sync "delivery" repository
     needs: apply-terraform
-    runs-on: ubuntu-22.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: arik-kfir/delivery
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - run: |-
-          yq e -P -i '.env.GKE_CLUSTER_NAME=env(GKE_CLUSTER_NAME)' .github/workflows/sync-traefik-lb-address.yml
-          yq e -P -i '.env.GKE_CLUSTER_LOCATION=env(GKE_CLUSTER_LOCATION)' .github/workflows/sync-traefik-lb-address.yml
-        env:
-          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-          GKE_CLUSTER_LOCATION: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - uses: EndBug/add-and-commit@v9
-        with:
-          add: .github/workflows/sync-traefik-lb-address.yml
-          author_name: GitHub Actions
-          author_email: <gha@kfirs.com>
-          message: Sync GKE cluster info in workflows
+    uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
+    with:
+      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
