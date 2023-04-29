@@ -97,9 +97,18 @@ jobs:
           done
         id: out
 
+  sync-delivery-repository:
+    name: Sync "delivery" repository
+    needs: apply-terraform
+    uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
+    with:
+      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+    secrets: inherit
+
   apply-fluxcd:
     name: Apply FluxCD
-    needs: apply-terraform
+    needs: [ sync-delivery-repository, apply-terraform ]
     runs-on: ubuntu-22.04
     env:
       FLUXCD_VERSION: 2.0.0-rc.1
@@ -162,11 +171,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
           MAIN_GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-
-  sync-delivery-repository:
-    name: Sync "delivery" repository
-    needs: apply-terraform
-    uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
-    with:
-      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
