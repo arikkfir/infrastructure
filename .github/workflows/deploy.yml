@@ -158,9 +158,11 @@ jobs:
           version: ${{ env.FLUXCD_VERSION }}
       - run: |
           flux bootstrap github \
+            --components-extra=image-reflector-controller,image-automation-controller \
             --interval 5m \
             --owner arik-kfir \
             --repository delivery \
+            --read-write-key \
             --branch main \
             --path clusters/${MAIN_GKE_CLUSTER_NAME} \
             --reconcile \
