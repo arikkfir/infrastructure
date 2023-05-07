@@ -138,6 +138,7 @@ jobs:
             gke_cluster_region: ${GKE_CLUSTER_REGION}
             zone: ${GKE_CLUSTER_ZONE}
             gke_cluster_zone: ${GKE_CLUSTER_ZONE}
+            gcp_project_number: $(gcloud projects describe arik-kfir --format=yaml | yq '.projectNumber')
           EOF
             kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
           else
