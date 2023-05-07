@@ -67,6 +67,8 @@ jobs:
       id-token: write
     outputs:
       gcp_region: ${{ steps.out.outputs.gcp_region }}
+      gcp_project_id: ${{ steps.out.outputs.gcp_project_id }}
+      gcp_project_number: ${{ steps.out.outputs.gcp_project_number }}
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
     steps:
@@ -138,7 +140,8 @@ jobs:
             gke_cluster_region: ${GKE_CLUSTER_REGION}
             zone: ${GKE_CLUSTER_ZONE}
             gke_cluster_zone: ${GKE_CLUSTER_ZONE}
-            gcp_project_number: $(gcloud projects describe arik-kfir --format=yaml | yq '.projectNumber')
+            gcp_project_id: "${GCP_PROJECT_ID}"
+            gcp_project_number: "${GCP_PROJECT_NUMBER}"
           EOF
             kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
           else
@@ -149,8 +152,12 @@ jobs:
               --from-literal=gke_cluster_region=${GKE_CLUSTER_REGION} \
               --from-literal=zone=${GKE_CLUSTER_ZONE} \
               --from-literal=gke_cluster_zone=${GKE_CLUSTER_ZONE}
+              --from-literal=gcp_project_id=${GCP_PROJECT_ID}
+              --from-literal=gcp_project_number=${GCP_PROJECT_NUMBER}
           fi
         env:
+          GCP_PROJECT_ID: ${{ needs.apply-terraform.outputs.gcp_project_id }}
+          GCP_PROJECT_NUMBER: ${{ needs.apply-terraform.outputs.gcp_project_number }}
           GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
           GKE_CLUSTER_REGION: ${{ needs.apply-terraform.outputs.gcp_region }}
           GKE_CLUSTER_ZONE: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}

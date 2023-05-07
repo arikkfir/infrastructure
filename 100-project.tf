@@ -36,3 +36,11 @@ resource "google_project_service" "apis" {
   disable_dependent_services = false
   disable_on_destroy         = false
 }
+
+output "gcp_project_id" {
+  value = data.google_project.arik-kfir.project_id
+}
+
+output "gcp_project_number" {
+  value = data.google_project.arik-kfir.number
+}
