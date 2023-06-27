@@ -17,6 +17,8 @@ terraform {
 
 provider "google" {}
 
+# ARIK AND OLEKSANDR
+
 provider "google-beta" {}
 
 variable "gcp_region" {
