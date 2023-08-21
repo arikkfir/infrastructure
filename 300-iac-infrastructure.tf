@@ -29,9 +29,13 @@ resource "google_project_iam_member" "infrastructure" {
   member  = "serviceAccount:${google_service_account.infrastructure.email}"
 }
 
-resource "google_storage_bucket_iam_member" "arikkfir-devops_infrastructure_objectAdmin" {
+resource "google_storage_bucket_iam_member" "arikkfir-devops_infrastructure" {
+  for_each = toset([
+    "roles/storage.admin",
+    "roles/storage.objectAdmin",
+  ])
   bucket = data.google_storage_bucket.arikkfir-devops.name
-  role   = "roles/storage.objectAdmin"
+  role    = each.key
   member = "serviceAccount:${google_service_account.infrastructure.email}"
 }
 
