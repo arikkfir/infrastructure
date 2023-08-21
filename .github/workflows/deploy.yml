@@ -127,7 +127,11 @@ jobs:
       - run: |
           while true; do
             kubectl get namespace cnrm-system && break
-            sleep 5
+            sleep 10
+          done
+          while true; do
+            test "$(kubectl get pod -n cnrm-system | wc -l | tr -d ' ')" -gt "0" && break
+            sleep 10
           done
       - run: kubectl wait -n cnrm-system --for=condition=Ready pod --all
 
