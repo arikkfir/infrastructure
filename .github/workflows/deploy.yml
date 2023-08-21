@@ -72,6 +72,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
       - uses: actions/download-artifact@v3
         with:
           name: plan
@@ -85,7 +86,6 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=100m -auto-approve tfplan
-      - run: terraform output -json > output.json
       - run: |
           echo "main_gke_cluster_name=$(terraform output -raw main_gke_cluster_name)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_location=$(terraform output -raw main_gke_cluster_location)" >> "$GITHUB_OUTPUT"
