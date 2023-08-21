@@ -1,6 +1,6 @@
 # infrastructure
 
-Manage the `arik-kfir` organization infrastructure.
+Manage the `arikkfir` organization infrastructure.
 
 ## Running
 
