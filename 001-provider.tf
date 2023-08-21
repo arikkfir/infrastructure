@@ -1,38 +1,45 @@
 terraform {
-  required_version = ">=1.4.2"
+  required_version = ">=1.5.5"
   backend "gcs" {
-    bucket = "arik-kfir-terraform"
+    bucket = "arikkfir-devops"
+    prefix = "terraform"
   }
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "= 4.59.0"
+      version = "= 4.78.0"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = "= 4.59.0"
+      version = "= 4.78.0"
     }
   }
 }
 
-provider "google" {}
+variable "gcp-project-id" {
+  type        = string
+  description = "GCP project to deploy resources."
+}
 
-# ARIK AND OLEKSANDR
-
-provider "google-beta" {}
-
-variable "gcp_region" {
+variable "gcp-region" {
   type        = string
   description = "Region to place compute resources."
-  default     = "me-west1"
 }
 
 locals {
-  gcp_zone_a = "${var.gcp_region}-a"
-  gcp_zone_b = "${var.gcp_region}-b"
-  gcp_zone_c = "${var.gcp_region}-c"
+  gcp_zone_a = "${var.gcp-region}-a"
+  gcp_zone_b = "${var.gcp-region}-b"
+  gcp_zone_c = "${var.gcp-region}-c"
 }
 
-output "gcp_region" {
-  value = var.gcp_region
+provider "google" {
+  project = var.gcp-project-id
+  region  = var.gcp-region
+  zone    = "${var.gcp-region}-a"
+}
+
+provider "google-beta" {
+  project = var.gcp-project-id
+  region  = var.gcp-region
+  zone    = "${var.gcp-region}-a"
 }

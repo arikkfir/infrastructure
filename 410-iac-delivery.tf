@@ -1,14 +1,13 @@
 resource "google_service_account" "delivery" {
-  project      = data.google_project.arik-kfir.project_id
   account_id   = "delivery"
-  display_name = "GitHub Actions: arik-kfir/delivery"
-  description  = "Used by the arik-kfir/delivery GitHub Actions workflows."
+  display_name = "GitHub Actions: arikkfir/delivery"
+  description  = "GitHub Actions workflows in arikkfir/delivery repository."
 }
 
-resource "google_service_account_iam_member" "delivery-workload-identity-user" {
+resource "google_service_account_iam_member" "delivery_workload-identity-user" {
   service_account_id = google_service_account.delivery.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.arik-kfir-github-actions.name}/attribute.repository/arik-kfir/delivery"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github-actions.name}/attribute.repository/arikkfir/delivery"
 }
 
 resource "google_organization_iam_member" "delivery" {
@@ -26,7 +25,7 @@ resource "google_project_iam_member" "delivery" {
     "roles/container.clusterViewer",
     "roles/container.developer",
   ])
-  project = data.google_project.arik-kfir.project_id
+  project = data.google_project.default.project_id
   role    = each.key
   member  = "serviceAccount:${google_service_account.delivery.email}"
 }

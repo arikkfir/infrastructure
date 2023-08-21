@@ -1,4 +1,4 @@
-data "google_storage_bucket" "arik-kfir-terraform" {
+data "google_storage_bucket" "arikkfir-devops" {
   provider = google
-  name     = "arik-kfir-terraform"
+  name     = "arikkfir-devops"
 }
