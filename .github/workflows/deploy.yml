@@ -92,39 +92,39 @@ jobs:
           done
         id: out
 
-#  setup-config-connector:
-#    name: Config Connector
-#    needs: [ apply-terraform ]
-#    runs-on: ubuntu-22.04
-#    permissions:
-#      id-token: write
-#    steps:
-#      - uses: google-github-actions/auth@v1
-#        with:
-#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-#      - uses: google-github-actions/setup-gcloud@v1
-#        with:
-#          version: ${{ env.GCP_CLI_VERSION }}
-#      - uses: google-github-actions/get-gke-credentials@v0
-#        with:
-#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-#      - run: gcloud storage cp gs://configconnector-operator/latest/release-bundle.tar.gz - | tar zxvf -
-#      - run: kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
-#      - run: |
-#          kubectl apply -f - <<EOF
-#          apiVersion: core.cnrm.cloud.google.com/v1beta1
-#          kind: ConfigConnector
-#          metadata:
-#            name: configconnector.core.cnrm.cloud.google.com
-#          spec:
-#            mode: cluster
-#            googleServiceAccount: "${CONFIG_CONNECTOR_SA_EMAIL}"
-#          EOF
-#        env:
-#          CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-#      - run: kubectl wait -n cnrm-system --for=condition=Ready pod --all
+  setup-config-connector:
+    name: Config Connector
+    needs: [ apply-terraform ]
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v0
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      - run: gcloud storage cp gs://configconnector-operator/latest/release-bundle.tar.gz - | tar zxvf -
+      - run: kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
+      - run: |
+          kubectl apply -f - <<EOF
+          apiVersion: core.cnrm.cloud.google.com/v1beta1
+          kind: ConfigConnector
+          metadata:
+            name: configconnector.core.cnrm.cloud.google.com
+          spec:
+            mode: cluster
+            googleServiceAccount: "${CONFIG_CONNECTOR_SA_EMAIL}"
+          EOF
+        env:
+          CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
+      - run: kubectl wait -n cnrm-system --for=condition=Ready pod --all
 
   #  sync-delivery-repository:
   #    name: Sync "delivery" repository
