@@ -18,3 +18,7 @@ resource "google_project_iam_member" "config-connector" {
   role    = each.key
   member  = "serviceAccount:${google_service_account.config-connector.email}"
 }
+
+output "config-connector-service-account-email" {
+  value = google_service_account.config-connector.email
+}
