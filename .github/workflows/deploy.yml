@@ -87,9 +87,9 @@ jobs:
       - run: terraform apply -input=false -lock-timeout=100m -auto-approve tfplan
       - run: terraform output -json > output.json
       - run: |
-          for key in $(jq -r 'keys[]' output.json); do
-            echo "${key}=$(jq -r ".${key}.value" output.json)" >> "$GITHUB_OUTPUT"
-          done
+          echo "main_gke_cluster_name=$(terraform output -raw main_gke_cluster_name)" >> "$GITHUB_OUTPUT"
+          echo "main_gke_cluster_location=$(terraform output -raw main_gke_cluster_location)" >> "$GITHUB_OUTPUT"
+          echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
         id: out
 
   setup-config-connector:
@@ -106,7 +106,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v1
         with:
           version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v0
+      - uses: google-github-actions/get-gke-credentials@v1
         with:
           cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
           location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
