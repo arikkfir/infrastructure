@@ -35,7 +35,7 @@ resource "google_storage_bucket_iam_member" "arikkfir-devops_infrastructure" {
     "roles/storage.objectAdmin",
   ])
   bucket = data.google_storage_bucket.arikkfir-devops.name
-  role    = each.key
+  role   = each.key
   member = "serviceAccount:${google_service_account.infrastructure.email}"
 }
 
