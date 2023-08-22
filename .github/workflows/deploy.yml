@@ -126,19 +126,21 @@ jobs:
           EOF
         env:
           CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-      - run: |
+      - id: wait for namespace
+        run: |
           while true; do
             kubectl get namespace cnrm-system && break
             sleep 30
           done
-        timeout-minutes: 30
-      - run: |
+      - id: wait for pods to be created
+        run: |
           while true; do
             test "$(kubectl get pod -n cnrm-system | wc -l | tr -d ' ')" -gt "0" && break
             sleep 30
           done
-        timeout-minutes: 30
-      - run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=120m --all
+      - run: sleep 60
+      - id: wait for pods to be ready
+        run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=-1 --all
 
   #  sync-delivery-repository:
   #    name: Sync "delivery" repository
