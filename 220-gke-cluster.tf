@@ -45,11 +45,6 @@ resource "google_container_cluster" "main" {
     enable_components = ["SYSTEM_COMPONENTS"]
     # TODO: enable metrics collection for builtin kubernetes components as well as workloads
   }
-  maintenance_policy {
-    daily_maintenance_window {
-      start_time = "01:00"
-    }
-  }
 
   # SECURITY
   ######################################################################################################################

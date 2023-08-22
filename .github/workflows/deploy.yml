@@ -85,7 +85,7 @@ jobs:
           install_components: gke-gcloud-auth-plugin
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
-      - run: terraform apply -input=false -lock-timeout=100m -auto-approve tfplan
+      - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
       - run: |
           echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
@@ -96,6 +96,8 @@ jobs:
     name: Config Connector
     needs: [ apply-terraform ]
     runs-on: ubuntu-22.04
+    timeout-minutes: 200
+    environment: production
     permissions:
       id-token: write
     steps:
@@ -127,13 +129,16 @@ jobs:
       - run: |
           while true; do
             kubectl get namespace cnrm-system && break
-            sleep 10
+            sleep 30
           done
+        timeout-minutes: 30
+      - run: |
           while true; do
             test "$(kubectl get pod -n cnrm-system | wc -l | tr -d ' ')" -gt "0" && break
-            sleep 10
+            sleep 30
           done
-      - run: kubectl wait -n cnrm-system --for=condition=Ready pod --all
+        timeout-minutes: 30
+      - run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=120m --all
 
   #  sync-delivery-repository:
   #    name: Sync "delivery" repository
