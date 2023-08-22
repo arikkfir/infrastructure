@@ -126,6 +126,7 @@ jobs:
           EOF
         env:
           CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
+      # TODO: wait for statefulset "configconnector-operator-system/configconnector-operator" to be ready (or its pod)
       - name: wait for namespace
         run: |
           while true; do
@@ -140,7 +141,7 @@ jobs:
           done
       - run: sleep 60
       - name: wait for pods to be ready
-        run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=-1 --all
+        run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=180m --all
 
   #  sync-delivery-repository:
   #    name: Sync "delivery" repository
