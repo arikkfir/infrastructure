@@ -20,11 +20,11 @@ resource "google_compute_subnetwork" "gke" {
 }
 
 resource "google_compute_firewall" "default-allow-internal" {
-  name          = "default-allow-internal"
-  network       = google_compute_network.default.name
-  disabled      = false
-  priority      = 65534
-  direction     = "INGRESS"
+  name      = "default-allow-internal"
+  network   = google_compute_network.default.name
+  disabled  = false
+  priority  = 65534
+  direction = "INGRESS"
   source_ranges = [
     "10.1.0.0/16",
     "10.10.0.0/16",
@@ -45,11 +45,11 @@ resource "google_compute_firewall" "default-allow-internal" {
 }
 
 resource "google_compute_firewall" "default-allow-ssh" {
-  name          = "default-allow-ssh"
-  network       = google_compute_network.default.name
-  disabled      = false
-  priority      = 65534
-  direction     = "INGRESS"
+  name      = "default-allow-ssh"
+  network   = google_compute_network.default.name
+  disabled  = false
+  priority  = 65534
+  direction = "INGRESS"
   source_ranges = [
     "0.0.0.0/0",
   ]
@@ -61,11 +61,11 @@ resource "google_compute_firewall" "default-allow-ssh" {
 }
 
 resource "google_compute_firewall" "default-allow-rdp" {
-  name          = "default-allow-rdp"
-  network       = google_compute_network.default.name
-  disabled      = false
-  priority      = 65534
-  direction     = "INGRESS"
+  name      = "default-allow-rdp"
+  network   = google_compute_network.default.name
+  disabled  = false
+  priority  = 65534
+  direction = "INGRESS"
   source_ranges = [
     "0.0.0.0/0",
   ]
@@ -77,11 +77,11 @@ resource "google_compute_firewall" "default-allow-rdp" {
 }
 
 resource "google_compute_firewall" "default-allow-icmp" {
-  name          = "default-allow-icmp"
-  network       = google_compute_network.default.name
-  disabled      = false
-  priority      = 65534
-  direction     = "INGRESS"
+  name      = "default-allow-icmp"
+  network   = google_compute_network.default.name
+  disabled  = false
+  priority  = 65534
+  direction = "INGRESS"
   source_ranges = [
     "0.0.0.0/0",
   ]
