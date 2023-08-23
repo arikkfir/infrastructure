@@ -114,7 +114,7 @@ jobs:
       - name: Install Config Connector operator
         run: |
           gcloud storage cp gs://configconnector-operator/${CONFIG_CONNECTOR_VERSION}/release-bundle.tar.gz .
-          tar zxvf release-bundle.tar.gz operator-system/autopilot-configconnector-operator.yaml
+          tar zxvf release-bundle.tar.gz
           kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
       - name: Wait for Config Connector operator to be ready
         run: kubectl rollout status StatefulSet/configconnector-operator --watch=true --timeout=0
