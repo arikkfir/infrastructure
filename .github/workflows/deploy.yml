@@ -117,7 +117,7 @@ jobs:
           tar zxvf release-bundle.tar.gz
           kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
       - name: Wait for Config Connector operator to be ready
-        run: kubectl rollout status StatefulSet/configconnector-operator --watch=true --timeout=0
+        run: kubectl rollout status -n configconnector-operator-system StatefulSet/configconnector-operator --watch=true --timeout=0
       - name: Provision a Config Connector instance
         run: |
           kubectl apply -f - <<EOF
