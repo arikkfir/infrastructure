@@ -13,6 +13,7 @@ defaults:
     shell: bash -exuo pipefail {0}
 
 env:
+  CONFIG_CONNECTOR_VERSION: 1.108.0
   GCP_SERVICE_ACCOUNT: infrastructure@arikkfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/8909046976/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
   GCP_CLI_VERSION: 443.0.0
@@ -112,9 +113,15 @@ jobs:
         with:
           cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
           location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - run: gcloud storage cp gs://configconnector-operator/latest/release-bundle.tar.gz - | tar zxvf -
-      - run: kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
-      - run: |
+      - name: Install Config Connector operator
+        run: |
+          gcloud storage cp gs://configconnector-operator/${CONFIG_CONNECTOR_VERSION}/release-bundle.tar.gz - \
+            | tar zxvf - --to-stdout operator-system/autopilot-configconnector-operator.yaml \
+            | kubectl apply -f -
+      - name: Wait for Config Connector operator to be ready
+        run: kubectl rollout status StatefulSet/configconnector-operator --watch=true --timeout=0
+      - name: Provision a Config Connector instance
+        run: |
           kubectl apply -f - <<EOF
           apiVersion: core.cnrm.cloud.google.com/v1beta1
           kind: ConfigConnector
@@ -126,22 +133,13 @@ jobs:
           EOF
         env:
           CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-      # TODO: wait for statefulset "configconnector-operator-system/configconnector-operator" to be ready (or its pod)
-      - name: wait for namespace
+      - name: Wait for Config Connector to be ready
         run: |
-          while true; do
-            kubectl get namespace cnrm-system && break
-            sleep 30
+          until test "$(kubectl get ns --field-selector=metadata.name=cnrm-system -o go-template='{{.items | len}}')" -gt "0"; do
+            echo "Waiting for 'cnrm-system' namespace..."
+            sleep 5
           done
-      - name: wait for pods to be created
-        run: |
-          while true; do
-            test "$(kubectl get pod -n cnrm-system | wc -l | tr -d ' ')" -gt "0" && break
-            sleep 30
-          done
-      - run: sleep 60
-      - name: wait for pods to be ready
-        run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=180m --all
+          kubectl -n cnrm-system get Deployment --output name | xargs -n1 -t kubectl rollout status --timeout=0
 
   #  sync-delivery-repository:
   #    name: Sync "delivery" repository
