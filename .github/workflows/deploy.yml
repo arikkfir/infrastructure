@@ -135,12 +135,34 @@ jobs:
           EOF
         env:
           CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-      - name: Wait for Config Connector to be ready
+      - name: Wait for Config Connector namespace
         run: |
           until test "$(kubectl get ns --field-selector=metadata.name=cnrm-system -o go-template='{{.items | len}}')" -gt "0"; do
             echo "Waiting for 'cnrm-system' namespace..."
             sleep 5
           done
+
+  wait-for-cnrm-deployments:
+    name: Wait for Config Connector deployments
+    needs: [ setup-config-connector, apply-terraform ]
+    runs-on: ubuntu-22.04
+    environment: production
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      - name: Wait for Config Connector deployments
+        run: |
           until kubectl rollout status -n cnrm-system deployment/cnrm-webhook-manager --watch=true --timeout=10s; do
             echo "Waiting for rollout of deployment/cnrm-webhook-manager to complete..."
             sleep 5
@@ -149,6 +171,28 @@ jobs:
             echo "Waiting for rollout of deployment/cnrm-resource-stats-recorder to complete..."
             sleep 5
           done
+
+  wait-for-cnrm-statefulsets:
+    name: Wait for Config Connector stateful sets
+    needs: [ setup-config-connector, apply-terraform ]
+    runs-on: ubuntu-22.04
+    environment: production
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      - name: Wait for Config Connector deployments
+        run: |
           until kubectl rollout status -n cnrm-system statefulset/cnrm-controller-manager --watch=true --timeout=10s; do
             echo "Waiting for rollout of statefulset/cnrm-controller-manager to complete..."
             sleep 5
@@ -158,14 +202,40 @@ jobs:
             sleep 5
           done
 
-  #  sync-delivery-repository:
-  #    name: Sync "delivery" repository
-  #    needs: apply-terraform
-  #    uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
-  #    with:
-  #      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-  #      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-  #    secrets: inherit
+#  sync-delivery-repository:
+#    name: Sync delivery cluster information
+#    needs: [ wait-for-cnrm-deployments, wait-for-cnrm-statefulsets, apply-terraform ]
+#    runs-on: ubuntu-22.04
+#    timeout-minutes: 30
+#    environment: production
+#    permissions:
+#      contents: write
+#    steps:
+#      - uses: actions/checkout@v3
+#        with:
+#          repository: arik-kfir/delivery
+#          token: ${{ secrets.SYNC_GKE_CLUSTER_INFO_PAT }}
+#      - run: |-
+#          yq e -P -i '.env.GKE_CLUSTER_NAME=env(GKE_CLUSTER_NAME)' .github/workflows/sync-traefik-lb-address.yml
+#          yq e -P -i '.env.GKE_CLUSTER_LOCATION=env(GKE_CLUSTER_LOCATION)' .github/workflows/sync-traefik-lb-address.yml
+#        env:
+#          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#          GKE_CLUSTER_LOCATION: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      - uses: EndBug/add-and-commit@v9
+#        with:
+#          add: .github/workflows/sync-traefik-lb-address.yml
+#          author_name: GitHub Actions
+#          author_email: <gha@kfirs.com>
+#          message: Sync GKE cluster info in workflows
+
+#    sync-delivery-repository:
+#      name: Sync "delivery" repository
+#      needs: apply-terraform
+#      uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
+#      with:
+#        gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#        gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      secrets: inherit
 
 #  apply-fluxcd:
 #    name: Apply FluxCD
