@@ -85,9 +85,15 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
+      - run: sleep 60
+      - run: |
+          until kubectl get -A deployment,statefulset,daemonset,job,cronjob -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
+            echo "Waiting for workloads to be ready..."
+            sleep 5
+          done
       - name: Wait for cluster to fully become ready
         run: |
-          for cmd in $(kubectl get -A deployment,statefulset,daemonset,job,cronjob -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}'); do
+          for cmd in $(cat workloads.txt); do
             NAMESPACE="$(echo -n ${cmd} | cut -d'/' -f1)"
             KIND="$(echo -n ${cmd} | cut -d'/' -f2)"
             NAME="$(echo - n ${cmd} | cut -d'/' -f3)"
