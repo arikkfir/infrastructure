@@ -85,7 +85,17 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
+      - id: out
+        name: Outputs
+        run: |
+          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
+          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
+          echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
       - run: sleep 60
+      - uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
+          location: ${{ steps.out.outputs.main_gke_cluster_location }}
       - run: |
           until kubectl get -A deployment,statefulset,daemonset,job,cronjob -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
             echo "Waiting for workloads to be ready..."
@@ -102,12 +112,6 @@ jobs:
               sleep 5
             done
           done
-      - id: out
-        name: Outputs
-        run: |
-          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
-          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
-          echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
 
   setup-config-connector:
     name: Config Connector
