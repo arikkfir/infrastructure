@@ -97,7 +97,7 @@ jobs:
           cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
           location: ${{ steps.out.outputs.main_gke_cluster_location }}
       - run: |
-          until kubectl get -A deployment,statefulset,daemonset,job,cronjob -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
+          until kubectl get -A deployment,statefulset,daemonset -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
             echo "Waiting for workloads to be ready..."
             sleep 5
           done
