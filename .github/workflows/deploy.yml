@@ -261,11 +261,12 @@ jobs:
     name: Apply FluxCD
     needs: [ apply-terraform ]
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      id-token: write
     env:
       FLUXCD_VERSION: 2.1.0
-    permissions:
-      contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@v3
       - uses: google-github-actions/auth@v1
