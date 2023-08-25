@@ -11,7 +11,7 @@ defaults:
     shell: bash -exuo pipefail {0}
 
 env:
-  CONFIG_CONNECTOR_VERSION: 1.108.0
+#  CONFIG_CONNECTOR_VERSION: 1.108.0
   GCP_SERVICE_ACCOUNT: infrastructure@arikkfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/8909046976/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
   GCP_CLI_VERSION: 443.0.0
@@ -91,138 +91,136 @@ jobs:
           echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
           echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
-      - run: sleep 60
-      - uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
-          location: ${{ steps.out.outputs.main_gke_cluster_location }}
-      - run: |
-          until kubectl get -A deployment,statefulset,daemonset -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
-            echo "Waiting for workloads to be ready..."
-            sleep 5
-          done
-      - name: Wait for cluster to fully become ready
-        run: |
-          for cmd in $(cat workloads.txt); do
-            NAMESPACE="$(echo -n ${cmd} | cut -d'/' -f1)"
-            KIND="$(echo -n ${cmd} | cut -d'/' -f2)"
-            NAME="$(echo - n ${cmd} | cut -d'/' -f3)"
-            until kubectl -n "${NAMESPACE}" rollout status "${KIND}/${NAME}" --watch=true --timeout=10s; do
-              echo "Waiting for rollout of ${KIND}/${NAME} to complete..."
-              sleep 5
-            done
-          done
+#      - run: sleep 60
+#      - uses: google-github-actions/get-gke-credentials@v1
+#        with:
+#          cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
+#          location: ${{ steps.out.outputs.main_gke_cluster_location }}
+#      - run: sleep 30 # ensure GKE creates (not necessarily starts...) all workloads it needs
+#      - run: |
+#          until kubectl get -A deployment,statefulset,daemonset -o go-template='{{range .items}}{{.metadata.namespace}}/{{.kind}}/{{.metadata.name}}{{"\n"}}{{end}}' > workloads.txt; do
+#            echo "Waiting for workloads list to be ready..."
+#            sleep 5
+#          done
+#      - name: Wait for cluster to fully become ready
+#        run: |
+#          for cmd in $(cat workloads.txt); do
+#            NAMESPACE="$(echo -n ${cmd} | cut -d'/' -f1)"
+#            KIND="$(echo -n ${cmd} | cut -d'/' -f2)"
+#            NAME="$(echo - n ${cmd} | cut -d'/' -f3)"
+#            until kubectl -n "${NAMESPACE}" rollout status "${KIND}/${NAME}" --watch=true --timeout=10s; do
+#              echo "Waiting for rollout of ${KIND}/${NAME} to complete..."
+#              sleep 5
+#            done
+#          done
 
-  setup-config-connector:
-    name: Config Connector
-    needs: [ apply-terraform ]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 200
-    environment: production
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - name: Install Config Connector operator
-        run: |
-          gcloud storage cp gs://configconnector-operator/${CONFIG_CONNECTOR_VERSION}/release-bundle.tar.gz .
-          tar zxvf release-bundle.tar.gz
-          kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
-      - name: Wait for Config Connector operator to be ready
-        run: |
-          until kubectl rollout status -n configconnector-operator-system statefulset/configconnector-operator --watch=true --timeout=10s; do
-            echo "Waiting for rollout of statefulset/configconnector-operator to complete..."
-            sleep 5
-          done
-      - name: Provision a Config Connector instance
-        run: |
-          kubectl apply -f - <<EOF
-          apiVersion: core.cnrm.cloud.google.com/v1beta1
-          kind: ConfigConnector
-          metadata:
-            name: configconnector.core.cnrm.cloud.google.com
-          spec:
-            mode: cluster
-            googleServiceAccount: "${CONFIG_CONNECTOR_SA_EMAIL}"
-          EOF
-        env:
-          CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-      - name: Wait for Config Connector namespace
-        run: |
-          until test "$(kubectl get ns --field-selector=metadata.name=cnrm-system -o go-template='{{.items | len}}')" -gt "0"; do
-            echo "Waiting for 'cnrm-system' namespace..."
-            sleep 5
-          done
-
-  wait-for-cnrm-deployments:
-    name: Wait for Config Connector deployments
-    needs: [ setup-config-connector, apply-terraform ]
-    runs-on: ubuntu-22.04
-    environment: production
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - name: Wait for Config Connector deployments
-        run: |
-          until kubectl rollout status -n cnrm-system deployment/cnrm-webhook-manager --watch=true --timeout=10s; do
-            echo "Waiting for rollout of deployment/cnrm-webhook-manager to complete..."
-            sleep 5
-          done
-          until kubectl rollout status -n cnrm-system deployment/cnrm-resource-stats-recorder --watch=true --timeout=10s; do
-            echo "Waiting for rollout of deployment/cnrm-resource-stats-recorder to complete..."
-            sleep 5
-          done
-
-  wait-for-cnrm-statefulsets:
-    name: Wait for Config Connector stateful sets
-    needs: [ setup-config-connector, apply-terraform ]
-    runs-on: ubuntu-22.04
-    environment: production
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - name: Wait for Config Connector deployments
-        run: |
-          until kubectl rollout status -n cnrm-system statefulset/cnrm-controller-manager --watch=true --timeout=10s; do
-            echo "Waiting for rollout of statefulset/cnrm-controller-manager to complete..."
-            sleep 5
-          done
-          until kubectl rollout status -n cnrm-system statefulset/cnrm-deletiondefender --watch=true --timeout=10s; do
-            echo "Waiting for rollout of statefulset/cnrm-deletiondefender to complete..."
-            sleep 5
-          done
+#  setup-config-connector:
+#    name: Config Connector
+#    needs: [ apply-terraform ]
+#    runs-on: ubuntu-22.04
+#    timeout-minutes: 200
+#    environment: production
+#    permissions:
+#      id-token: write
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: google-github-actions/auth@v1
+#        with:
+#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+#      - uses: google-github-actions/setup-gcloud@v1
+#        with:
+#          version: ${{ env.GCP_CLI_VERSION }}
+#      - uses: google-github-actions/get-gke-credentials@v1
+#        with:
+#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      - run: kustomize build config-connector-operator | kubeclt apply -f -
+#      - name: Wait for Config Connector operator to be ready
+#        run: |
+#          until kubectl rollout status -n configconnector-operator-system statefulset/configconnector-operator --watch=true --timeout=10s; do
+#            echo "Waiting for rollout of statefulset/configconnector-operator to complete..."
+#            sleep 5
+#          done
+#      - name: Provision a Config Connector instance
+#        run: |
+#          kubectl apply -f - <<EOF
+#          apiVersion: core.cnrm.cloud.google.com/v1beta1
+#          kind: ConfigConnector
+#          metadata:
+#            name: configconnector.core.cnrm.cloud.google.com
+#          spec:
+#            mode: cluster
+#            googleServiceAccount: "${CONFIG_CONNECTOR_SA_EMAIL}"
+#          EOF
+#        env:
+#          CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
+#      - name: Wait for Config Connector namespace
+#        run: |
+#          until test "$(kubectl get ns --field-selector=metadata.name=cnrm-system -o go-template='{{.items | len}}')" -gt "0"; do
+#            echo "Waiting for 'cnrm-system' namespace..."
+#            sleep 5
+#          done
+#
+#  wait-for-cnrm-deployments:
+#    name: Wait for Config Connector deployments
+#    needs: [ setup-config-connector, apply-terraform ]
+#    runs-on: ubuntu-22.04
+#    environment: production
+#    permissions:
+#      id-token: write
+#    steps:
+#      - uses: google-github-actions/auth@v1
+#        with:
+#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+#      - uses: google-github-actions/setup-gcloud@v1
+#        with:
+#          version: ${{ env.GCP_CLI_VERSION }}
+#      - uses: google-github-actions/get-gke-credentials@v1
+#        with:
+#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      - name: Wait for Config Connector deployments
+#        run: |
+#          until kubectl rollout status -n cnrm-system deployment/cnrm-webhook-manager --watch=true --timeout=10s; do
+#            echo "Waiting for rollout of deployment/cnrm-webhook-manager to complete..."
+#            sleep 5
+#          done
+#          until kubectl rollout status -n cnrm-system deployment/cnrm-resource-stats-recorder --watch=true --timeout=10s; do
+#            echo "Waiting for rollout of deployment/cnrm-resource-stats-recorder to complete..."
+#            sleep 5
+#          done
+#
+#  wait-for-cnrm-statefulsets:
+#    name: Wait for Config Connector stateful sets
+#    needs: [ setup-config-connector, apply-terraform ]
+#    runs-on: ubuntu-22.04
+#    environment: production
+#    permissions:
+#      id-token: write
+#    steps:
+#      - uses: google-github-actions/auth@v1
+#        with:
+#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+#      - uses: google-github-actions/setup-gcloud@v1
+#        with:
+#          version: ${{ env.GCP_CLI_VERSION }}
+#      - uses: google-github-actions/get-gke-credentials@v1
+#        with:
+#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      - name: Wait for Config Connector deployments
+#        run: |
+#          until kubectl rollout status -n cnrm-system statefulset/cnrm-controller-manager --watch=true --timeout=10s; do
+#            echo "Waiting for rollout of statefulset/cnrm-controller-manager to complete..."
+#            sleep 5
+#          done
+#          until kubectl rollout status -n cnrm-system statefulset/cnrm-deletiondefender --watch=true --timeout=10s; do
+#            echo "Waiting for rollout of statefulset/cnrm-deletiondefender to complete..."
+#            sleep 5
+#          done
 
 #  sync-delivery-repository:
 #    name: Sync delivery cluster information
@@ -259,28 +257,28 @@ jobs:
 #        gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
 #      secrets: inherit
 
-#  apply-fluxcd:
-#    name: Apply FluxCD
-#    needs: [ sync-delivery-repository, apply-terraform ]
-#    runs-on: ubuntu-22.04
-#    env:
-#      FLUXCD_VERSION: 2.0.0-rc.1
-#    permissions:
-#      contents: write
-#      id-token: write
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: google-github-actions/auth@v1
-#        with:
-#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-#      - uses: google-github-actions/setup-gcloud@v1
-#        with:
-#          version: ${{ env.GCP_CLI_VERSION }}
-#      - uses: google-github-actions/get-gke-credentials@v0
-#        with:
-#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+  apply-fluxcd:
+    name: Apply FluxCD
+    needs: [ apply-terraform ]
+    runs-on: ubuntu-22.04
+    env:
+      FLUXCD_VERSION: 2.1.0
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
 #      - run: |
 #          if kubectl get -n default configmap/cluster-info; then
 #            cat > patch.yaml <<EOF
@@ -312,22 +310,22 @@ jobs:
 #          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
 #          GKE_CLUSTER_REGION: ${{ needs.apply-terraform.outputs.gcp_region }}
 #          GKE_CLUSTER_ZONE: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-#      - uses: fluxcd/flux2/action@main
-#        with:
-#          version: ${{ env.FLUXCD_VERSION }}
-#      - run: |
-#          flux bootstrap github \
-#            --interval 5m \
-#            --owner arik-kfir \
-#            --repository delivery \
-#            --read-write-key \
-#            --branch main \
-#            --path clusters/${MAIN_GKE_CLUSTER_NAME} \
-#            --reconcile \
-#            --author-email flux@kfirs.com \
-#            --author-name "FluxCD Bot" \
-#            --timeout 30m \
-#            --version=v${FLUXCD_VERSION}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
-#          MAIN_GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      - uses: fluxcd/flux2/action@main
+        with:
+          version: ${{ env.FLUXCD_VERSION }}
+      - run: |
+          flux bootstrap github \
+            --interval 5m \
+            --owner arikkfir \
+            --repository delivery \
+            --read-write-key \
+            --branch main \
+            --path clusters/${MAIN_GKE_CLUSTER_NAME} \
+            --reconcile \
+            --author-email flux@kfirs.com \
+            --author-name "FluxCD Bot" \
+            --timeout 30m \
+            --version=v${FLUXCD_VERSION}
+        env:
+          GITHUB_TOKEN: ${{ secrets.ARIKKFIR_INFRASTRUCTURE_FLUX_BOOTSTRAP }}
+          MAIN_GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
