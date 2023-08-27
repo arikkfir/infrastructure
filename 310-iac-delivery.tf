@@ -4,6 +4,13 @@ resource "google_service_account" "delivery" {
   description  = "GitHub Actions workflows in arikkfir/delivery repository."
 }
 
+# Allow this service account to connect from workflows in the infrastructure repository
+resource "google_service_account_iam_member" "delivery_infrastructure_workload-identity-user" {
+  service_account_id = google_service_account.delivery.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github-actions.name}/attribute.repository/arikkfir/infrastructure"
+}
+
 resource "google_service_account_iam_member" "delivery_workload-identity-user" {
   service_account_id = google_service_account.delivery.name
   role               = "roles/iam.workloadIdentityUser"
@@ -22,6 +29,7 @@ resource "google_organization_iam_member" "delivery" {
 
 resource "google_project_iam_member" "delivery" {
   for_each = toset([
+    "roles/container.admin",
     "roles/container.clusterViewer",
     "roles/container.developer",
   ])

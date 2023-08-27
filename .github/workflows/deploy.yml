@@ -1,8 +1,6 @@
 name: Deploy
 on:
   push:
-    branches:
-      - main
     paths:
       - .github/workflows/deploy.yml
       - "*.tf"
@@ -18,8 +16,8 @@ env:
   GCP_CLI_VERSION: 443.0.0
   TERRAFORM_VERSION: 1.5.5
   TF_IN_AUTOMATION: true
-  TF_VAR_gcp-project-id: arikkfir
-  TF_VAR_gcp-region: me-west1
+  TF_VAR_gcp_project_id: arikkfir
+  TF_VAR_gcp_region: me-west1
 
 concurrency:
   group: production
@@ -65,9 +63,9 @@ jobs:
     permissions:
       id-token: write
     outputs:
+      gcp_region: ${{ steps.out.outputs.gcp_region }}
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
-      config_connector_sa_email: ${{ steps.out.outputs.config_connector_sa_email }}
     steps:
       - uses: hashicorp/setup-terraform@v2
         with:
@@ -86,141 +84,28 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
-      - run: |
+      - id: out
+        name: Outputs
+        run: |
+          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
-          echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
-        id: out
 
-  setup-config-connector:
-    name: Config Connector
-    needs: [ apply-terraform ]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 200
-    environment: production
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: ${{ env.GCP_CLI_VERSION }}
-      - uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      - run: gcloud storage cp gs://configconnector-operator/latest/release-bundle.tar.gz - | tar zxvf -
-      - run: kubectl apply -f operator-system/autopilot-configconnector-operator.yaml
-      - run: |
-          kubectl apply -f - <<EOF
-          apiVersion: core.cnrm.cloud.google.com/v1beta1
-          kind: ConfigConnector
-          metadata:
-            name: configconnector.core.cnrm.cloud.google.com
-          spec:
-            mode: cluster
-            googleServiceAccount: "${CONFIG_CONNECTOR_SA_EMAIL}"
-          EOF
-        env:
-          CONFIG_CONNECTOR_SA_EMAIL: ${{ needs.apply-terraform.outputs.config_connector_sa_email }}
-      # TODO: wait for statefulset "configconnector-operator-system/configconnector-operator" to be ready (or its pod)
-      - name: wait for namespace
-        run: |
-          while true; do
-            kubectl get namespace cnrm-system && break
-            sleep 30
-          done
-      - name: wait for pods to be created
-        run: |
-          while true; do
-            test "$(kubectl get pod -n cnrm-system | wc -l | tr -d ' ')" -gt "0" && break
-            sleep 30
-          done
-      - run: sleep 60
-      - name: wait for pods to be ready
-        run: kubectl wait -n cnrm-system --for=condition=Ready pod --timeout=180m --all
+  sync-delivery-repository:
+    name: Sync "delivery" repository
+    needs: apply-terraform
+    uses: arikkfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
+    with:
+      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      gke_ingress_region: ${{ needs.apply-terraform.outputs.gcp_region }}
+    secrets: inherit
 
-  #  sync-delivery-repository:
-  #    name: Sync "delivery" repository
-  #    needs: apply-terraform
-  #    uses: arik-kfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
-  #    with:
-  #      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-  #      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-  #    secrets: inherit
-
-#  apply-fluxcd:
-#    name: Apply FluxCD
-#    needs: [ sync-delivery-repository, apply-terraform ]
-#    runs-on: ubuntu-22.04
-#    env:
-#      FLUXCD_VERSION: 2.0.0-rc.1
-#    permissions:
-#      contents: write
-#      id-token: write
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: google-github-actions/auth@v1
-#        with:
-#          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-#          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-#      - uses: google-github-actions/setup-gcloud@v1
-#        with:
-#          version: ${{ env.GCP_CLI_VERSION }}
-#      - uses: google-github-actions/get-gke-credentials@v0
-#        with:
-#          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-#          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-#      - run: |
-#          if kubectl get -n default configmap/cluster-info; then
-#            cat > patch.yaml <<EOF
-#          data:
-#            name: ${GKE_CLUSTER_NAME}
-#            gke_cluster_name: ${GKE_CLUSTER_NAME}
-#            region: ${GKE_CLUSTER_REGION}
-#            gke_cluster_region: ${GKE_CLUSTER_REGION}
-#            zone: ${GKE_CLUSTER_ZONE}
-#            gke_cluster_zone: ${GKE_CLUSTER_ZONE}
-#            gcp_project_id: "${GCP_PROJECT_ID}"
-#            gcp_project_number: "${GCP_PROJECT_NUMBER}"
-#          EOF
-#            kubectl patch -n default configmap/cluster-info --patch-file=patch.yaml
-#          else
-#            kubectl create -n default configmap cluster-info \
-#              --from-literal=name=${GKE_CLUSTER_NAME} \
-#              --from-literal=gke_cluster_name=${GKE_CLUSTER_NAME} \
-#              --from-literal=region=${GKE_CLUSTER_REGION} \
-#              --from-literal=gke_cluster_region=${GKE_CLUSTER_REGION} \
-#              --from-literal=zone=${GKE_CLUSTER_ZONE} \
-#              --from-literal=gke_cluster_zone=${GKE_CLUSTER_ZONE}
-#              --from-literal=gcp_project_id=${GCP_PROJECT_ID}
-#              --from-literal=gcp_project_number=${GCP_PROJECT_NUMBER}
-#          fi
-#        env:
-#          GCP_PROJECT_ID: ${{ needs.apply-terraform.outputs.gcp_project_id }}
-#          GCP_PROJECT_NUMBER: ${{ needs.apply-terraform.outputs.gcp_project_number }}
-#          GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-#          GKE_CLUSTER_REGION: ${{ needs.apply-terraform.outputs.gcp_region }}
-#          GKE_CLUSTER_ZONE: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-#      - uses: fluxcd/flux2/action@main
-#        with:
-#          version: ${{ env.FLUXCD_VERSION }}
-#      - run: |
-#          flux bootstrap github \
-#            --interval 5m \
-#            --owner arik-kfir \
-#            --repository delivery \
-#            --read-write-key \
-#            --branch main \
-#            --path clusters/${MAIN_GKE_CLUSTER_NAME} \
-#            --reconcile \
-#            --author-email flux@kfirs.com \
-#            --author-name "FluxCD Bot" \
-#            --timeout 30m \
-#            --version=v${FLUXCD_VERSION}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.FLUXCD_PAT }}
-#          MAIN_GKE_CLUSTER_NAME: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+  apply-fluxcd:
+    name: Apply FluxCD
+    needs: [apply-terraform, sync-delivery-repository]
+    uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
+    with:
+      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+    secrets: inherit
