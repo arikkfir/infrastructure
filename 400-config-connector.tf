@@ -15,6 +15,7 @@ resource "google_project_iam_member" "config-connector" {
     "roles/editor",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",
+    "roles/secretmanager.admin",
   ])
   project = data.google_project.default.project_id
   role    = each.key
