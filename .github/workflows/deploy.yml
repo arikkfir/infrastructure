@@ -100,3 +100,12 @@ jobs:
       gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
       gke_ingress_region: ${{ needs.apply-terraform.outputs.gcp_region }}
     secrets: inherit
+
+  apply-fluxcd:
+    name: Apply FluxCD
+    needs: sync-delivery-repository
+    uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
+    with:
+      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+    secrets: inherit
