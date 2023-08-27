@@ -63,6 +63,7 @@ jobs:
     permissions:
       id-token: write
     outputs:
+      gcp_region: ${{ steps.out.outputs.gcp_region }}
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
     steps:
@@ -86,6 +87,7 @@ jobs:
       - id: out
         name: Outputs
         run: |
+          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
           echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
 
@@ -96,5 +98,5 @@ jobs:
     with:
       gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
       gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      gke_ingress_region: ${{ env.TF_VAR_gcp_region }}
+      gke_ingress_region: ${{ needs.apply-terraform.outputs.gcp_region }}
     secrets: inherit

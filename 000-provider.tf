@@ -26,6 +26,11 @@ variable "gcp_region" {
   description = "Region to place compute resources."
 }
 
+output "gcp_region" {
+  # redirect variable to an output, so it can be used in a GHA workflow-dispatch job (it can't use env vars)
+  value = var.gcp_region
+}
+
 locals {
   gcp_zone_a = "${var.gcp_region}-a"
   gcp_zone_b = "${var.gcp_region}-b"
