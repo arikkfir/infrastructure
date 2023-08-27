@@ -11,7 +11,6 @@ defaults:
     shell: bash -exuo pipefail {0}
 
 env:
-#  CONFIG_CONNECTOR_VERSION: 1.108.0
   GCP_SERVICE_ACCOUNT: infrastructure@arikkfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/8909046976/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
   GCP_CLI_VERSION: 443.0.0
