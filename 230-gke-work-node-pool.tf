@@ -28,7 +28,7 @@ resource "google_container_node_pool" "work_node_pool" {
     disk_type    = "pd-standard"
 
     labels = {
-      "kfirs.com/role" = "work"
+      "node.kfirs.com/role" = "work"
     }
 
     machine_type    = "e2-standard-4"
