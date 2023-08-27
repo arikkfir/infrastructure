@@ -67,4 +67,10 @@ resource "google_container_cluster" "main" {
   workload_identity_config {
     workload_pool = "${data.google_project.default.project_id}.svc.id.goog"
   }
+
+  # TERRAFORM HOOKS
+  ######################################################################################################################
+  lifecycle {
+    ignore_changes = [dns_config.0.cluster_dns_scope]
+  }
 }
