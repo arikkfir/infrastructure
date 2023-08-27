@@ -103,7 +103,7 @@ jobs:
 
   apply-fluxcd:
     name: Apply FluxCD
-    needs: sync-delivery-repository
+    needs: [apply-terraform, sync-delivery-repository]
     uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
     with:
       gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
