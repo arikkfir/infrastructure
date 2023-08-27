@@ -29,6 +29,7 @@ resource "google_organization_iam_member" "delivery" {
 
 resource "google_project_iam_member" "delivery" {
   for_each = toset([
+    "roles/container.admin",
     "roles/container.clusterViewer",
     "roles/container.developer",
   ])
