@@ -1,4 +1,4 @@
-name: Create PR on branch push
+name: Setup feature branch
 on:
   push:
     branches-ignore:
