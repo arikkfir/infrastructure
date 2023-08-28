@@ -1,11 +1,10 @@
 name: Deploy
 
 on:
-  push:
-    paths:
-      - .github/workflows/deploy.yml
-      - "*.tf"
-  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 defaults:
   run:
