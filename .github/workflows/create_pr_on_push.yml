@@ -8,10 +8,6 @@ defaults:
   run:
     shell: bash -exuo pipefail {0}
 
-concurrency:
-  group: production
-  cancel-in-progress: true
-
 jobs:
 
   create-pr:
@@ -22,14 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |-
-          gh pr list
+          PR_EXISTS="$(gh pr list --base main --head ${{ github.ref_name }} --state open --json number --jq '. | length > 0')"
+          if [[ "${PR_EXISTS}" == "false" ]]; then
+            gh pr create --base main --head ${{ github.ref_name }} --fill --label "auto-created"
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
-#      - name: Create Pull Request
-#        uses: peter-evans/create-pull-request@v5
-#        with:
-#          base: main
-#          branch: ${{ github.ref }}
-#          body: Auto-created Pull Request
-#          commit-message: Auto Pull Request
-#          title: Your desired title
