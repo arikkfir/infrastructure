@@ -27,4 +27,4 @@ jobs:
             gh pr merge --auto --merge --delete-branch
           fi
         env:
-          GH_TOKEN: ${{ secrets.GHA_AUTOMATION_PAT }}
+          GH_TOKEN: ${{ secrets.ARIKKFIR_GHA_AUTOMATION }}
