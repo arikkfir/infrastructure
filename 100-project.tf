@@ -56,14 +56,15 @@ resource "google_iam_workload_identity_pool_provider" "github-oidc" {
   workload_identity_pool_provider_id = "github-oidc"
   description                        = "OIDC identity pool provider for GitHub Actions workflows."
   display_name                       = "GitHub OIDC"
-  attribute_mapping = {
-    "attribute.aud"        = "assertion.aud"
-    "attribute.actor"      = "assertion.actor"
-    "google.subject"       = "assertion.sub"
-    "attribute.repository" = "assertion.repository"
-    "attribute.ref_type"   = "assertion.ref_type"
-    "attribute.ref"        = "assertion.ref"
-    "attribute.event_name" = "assertion.event_name"
+  attribute_mapping                  = {
+    "attribute.aud"              = "assertion.aud"
+    "attribute.actor"            = "assertion.actor"
+    "google.subject"             = "assertion.sub"
+    "attribute.repository"       = "assertion.repository"
+    "attribute.repository_owner" = "assertion.repository_owner"
+    "attribute.ref_type"         = "assertion.ref_type"
+    "attribute.ref"              = "assertion.ref"
+    "attribute.event_name"       = "assertion.event_name"
   }
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"

@@ -14,7 +14,7 @@ resource "google_service_account_iam_member" "delivery_infrastructure_workload-i
 resource "google_service_account_iam_member" "delivery_workload-identity-user" {
   service_account_id = google_service_account.delivery.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github-actions.name}/attribute.repository/arikkfir/delivery"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github-actions.name}/attribute.repository_owner/arikkfir"
 }
 
 resource "google_organization_iam_member" "delivery" {
