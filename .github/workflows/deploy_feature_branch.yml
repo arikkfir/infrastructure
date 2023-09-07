@@ -47,19 +47,6 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: terraform fmt -check -recursive -no-color -diff
       - run: terraform init -input=false
-      - run: |
-          cat > vars.auto.tfvars <<EOF
-          gke_master_auth_allowed_cidr_blocks = [
-            {
-              cidr_block = "${DEFAULT_HOME_IP}/32"
-              display_name = "Home"
-            },
-            {
-              cidr_block = "${DEFAULT_OFFICE_IP}/32"
-              display_name = "Office"
-            }
-          ]  
-          EOF
       - run: terraform plan -input=false -lock-timeout=20m -out tfplan
       - run: tar -c -j -v -f tfplan.tar.bz2 .terraform .terraform.lock.hcl *.tf tfplan
       - uses: actions/upload-artifact@v3
@@ -118,7 +105,7 @@ jobs:
 
   apply-fluxcd:
     name: Apply FluxCD
-    needs: [apply-terraform, sync-delivery-repository]
+    needs: [ apply-terraform, sync-delivery-repository ]
     uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
     with:
       gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
