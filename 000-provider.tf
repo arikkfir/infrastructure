@@ -26,6 +26,17 @@ variable "gcp_region" {
   description = "Region to place compute resources."
 }
 
+variable "gke_master_auth_allowed_cidr_blocks" {
+  type = list(map(string))
+  default = [
+    {
+      cidr_block = "0.0.0.0/0"
+      display_name = "default"
+    },
+  ]
+  description = "Defines up to 20 external networks that can access Kubernetes master through HTTPS."
+}
+
 output "gcp_region" {
   # redirect variable to an output, so it can be used in a GHA workflow-dispatch job (it can't use env vars)
   value = var.gcp_region

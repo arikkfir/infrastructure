@@ -24,6 +24,15 @@ resource "google_container_cluster" "main" {
   network         = google_compute_network.default.self_link
   subnetwork      = google_compute_subnetwork.gke.self_link
   networking_mode = "VPC_NATIVE"
+  master_authorized_networks_config {
+    dynamic "cidr_blocks" {
+      for_each = var.gke_master_auth_allowed_cidr_blocks
+      content {
+        cidr_block   = cidr_blocks.value.cidr_block
+        display_name = cidr_blocks.value.display_name
+      }
+    }
+  }
   ip_allocation_policy {
     services_secondary_range_name = google_compute_subnetwork.gke.secondary_ip_range.0.range_name
     cluster_secondary_range_name  = google_compute_subnetwork.gke.secondary_ip_range.1.range_name
