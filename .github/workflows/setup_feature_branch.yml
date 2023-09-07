@@ -24,7 +24,7 @@ jobs:
           PR_EXISTS="$(gh pr list --base main --head ${{ github.ref_name }} --state open --json number --jq '. | length > 0')"
           if [[ "${PR_EXISTS}" == "false" ]]; then
             gh pr create --base main --head ${{ github.ref_name }} --fill --label "auto-created"
-            gh pr merge --auto --merge --rebase --delete-branch
+            gh pr merge --auto --rebase --delete-branch
           fi
         env:
           GH_TOKEN: ${{ secrets.ARIKKFIR_GHA_AUTOMATION }}
