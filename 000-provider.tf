@@ -27,10 +27,10 @@ variable "gcp_region" {
 }
 
 variable "gke_master_auth_allowed_cidr_blocks" {
-  type = list(map(string))
+  type    = list(map(string))
   default = [
     {
-      cidr_block = "0.0.0.0/0"
+      cidr_block   = "0.0.0.0/0"
       display_name = "default"
     },
   ]
