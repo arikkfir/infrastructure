@@ -1,8 +1,8 @@
 resource "google_container_cluster" "main" {
-  #  depends_on = [
-  #    google_project_service.apis,
-  #    google_service_account_iam_member.compute-default-service-account_infrastructure_iam-serviceAccountUser,
-  #  ]
+  depends_on = [
+    google_project_service.apis,
+    google_service_account_iam_member.compute-default-service-account_infrastructure_iam-serviceAccountUser,
+  ]
 
   # GENERAL
   ######################################################################################################################
@@ -17,6 +17,14 @@ resource "google_container_cluster" "main" {
   remove_default_node_pool = true
   cluster_autoscaling {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
+  }
+
+  # STORAGE
+  ######################################################################################################################
+  addons_config {
+    gcs_fuse_csi_driver_config {
+      enabled = true
+    }
   }
 
   # NETWORKING
