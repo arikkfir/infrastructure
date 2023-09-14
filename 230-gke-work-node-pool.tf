@@ -17,7 +17,7 @@ resource "google_container_node_pool" "work_node_pool" {
   }
   autoscaling {
     total_min_node_count = 0
-    total_max_node_count = 3
+    total_max_node_count = 5
     location_policy      = "ANY"
   }
 
