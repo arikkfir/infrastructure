@@ -12,6 +12,7 @@ defaults:
     shell: bash -exuo pipefail {0}
 
 env:
+  CONFIG_CONNECTOR_VERSION: 1.109.0
   GCP_SERVICE_ACCOUNT: infrastructure@arikkfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/8909046976/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
   GCP_CLI_VERSION: 452.0.1
@@ -64,6 +65,7 @@ jobs:
     permissions:
       id-token: write
     outputs:
+      config_connector_sa_email: ${{ steps.out.outputs.config_connector_sa_email }}
       gcp_region: ${{ steps.out.outputs.gcp_region }}
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
@@ -85,22 +87,48 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
-      - uses: actions/github-script@v7
+      - id: out
+        run: |
+          echo "config_connector_sa_email=$(terraform output -raw config-connector-service-account-email)" >> "$GITHUB_OUTPUT"
+          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
+          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
+          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
+
+  install-config-connector:
+    name: Install ConfigConnector
+    needs: apply-terraform
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v2
         with:
-          github-token: "${{ secrets.PAT_MERGE_PR }}"
-          script: |
-            await github.rest.pulls.merge({
-              merge_method: "merge",
-              owner: context.repo.owner,
-              pull_number: context.payload.number,
-              repo: context.repo.repo
-            })
-#      - id: out
-#        name: Outputs
-#        run: |
-#          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
-#          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
-#          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ${{ env.GCP_CLI_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+          location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+      - run: |
+          gsutil cp gs://configconnector-operator/${CONFIG_CONNECTOR_VERSION}/release-bundle.tar.gz - \
+            | tar xzvf - --to-stdout ./operator-system/configconnector-operator.yaml \
+            | kubectl apply -f -
+      - run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: core.cnrm.cloud.google.com/v1beta1
+          kind: ConfigConnector
+          metadata:
+            name: configconnector.core.cnrm.cloud.google.com
+          spec:
+            mode: cluster
+            googleServiceAccount: config-connector@arikkfir.iam.gserviceaccount.com
+          EOF
+          kubectl wait -n configconnector-operator-system --for=condition=Ready pod --all
 
 #  sync-delivery-repository:
 #    name: Sync "delivery" repository
