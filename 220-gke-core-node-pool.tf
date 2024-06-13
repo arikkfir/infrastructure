@@ -32,9 +32,8 @@ resource "google_container_node_pool" "core_node_pool" {
     }
 
     machine_type    = "e2-standard-4"
-    service_account = data.google_compute_default_service_account.default.email
-    preemptible     = false
-    spot            = false
+    service_account = google_service_account.gke-node.email
+    spot            = true
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"

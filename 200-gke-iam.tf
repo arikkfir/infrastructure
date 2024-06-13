@@ -1,3 +1,20 @@
+resource "google_service_account" "gke-node" {
+  account_id   = "gke-node"
+  display_name = "GKE Node"
+  description  = "Service account used by GKE nodes"
+}
+
+resource "google_project_iam_member" "gke-node" {
+  for_each = toset([
+    "roles/container.defaultNodeServiceAccount",
+    "roles/container.nodeServiceAgent",
+    "roles/container.serviceAgent",
+  ])
+  project = data.google_project.default.project_id
+  role    = each.key
+  member  = "serviceAccount:${google_service_account.gke-node.email}"
+}
+
 resource "google_service_account" "config-connector" {
   account_id   = "config-connector"
   display_name = "GKE Config Connector"
@@ -12,10 +29,7 @@ resource "google_service_account_iam_member" "config-connector_workload_identity
 
 resource "google_project_iam_member" "config-connector" {
   for_each = toset([
-    "roles/editor",
-    "roles/iam.serviceAccountAdmin",
-    "roles/resourcemanager.projectIamAdmin",
-    "roles/secretmanager.admin",
+    "roles/owner",
   ])
   project = data.google_project.default.project_id
   role    = each.key
