@@ -85,6 +85,16 @@ jobs:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
+      - uses: actions/github-script@v7
+        with:
+          github-token: "${{ secrets.PAT_MERGE_PR }}"
+          script: |
+            await github.rest.pulls.merge({
+              merge_method: "merge",
+              owner: context.repo.owner,
+              pull_number: context.payload.number,
+              repo: context.repo.repo
+            })
 #      - id: out
 #        name: Outputs
 #        run: |
