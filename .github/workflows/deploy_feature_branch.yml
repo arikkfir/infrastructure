@@ -13,8 +13,8 @@ defaults:
 env:
   GCP_SERVICE_ACCOUNT: infrastructure@arikkfir.iam.gserviceaccount.com
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/8909046976/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
-  GCP_CLI_VERSION: 443.0.0
-  TERRAFORM_VERSION: 1.5.5
+  GCP_CLI_VERSION: 452.0.1
+  TERRAFORM_VERSION: 1.5.7
   TF_IN_AUTOMATION: true
   TF_VAR_gcp_project_id: arikkfir
   TF_VAR_gcp_region: me-west1
@@ -32,15 +32,15 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v2
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-      - uses: google-github-actions/auth@v1
+      - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
+      - uses: google-github-actions/setup-gcloud@v2
         with:
           version: ${{ env.GCP_CLI_VERSION }}
       - run: terraform fmt -check -recursive -no-color -diff
@@ -67,45 +67,45 @@ jobs:
       main_gke_cluster_name: ${{ steps.out.outputs.main_gke_cluster_name }}
       main_gke_cluster_location: ${{ steps.out.outputs.main_gke_cluster_location }}
     steps:
-      - uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: plan
-      - uses: google-github-actions/auth@v1
+      - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v1
+      - uses: google-github-actions/setup-gcloud@v2
         with:
           install_components: gke-gcloud-auth-plugin
           version: ${{ env.GCP_CLI_VERSION }}
       - run: tar -x -j -v -f tfplan.tar.bz2
       - run: terraform apply -input=false -lock-timeout=120s -auto-approve tfplan
-      - id: out
-        name: Outputs
-        run: |
-          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
-          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
-          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
+#      - id: out
+#        name: Outputs
+#        run: |
+#          echo "gcp_region=$(terraform output -raw gcp_region)" >> "$GITHUB_OUTPUT"
+#          echo "main_gke_cluster_name=$(terraform output -raw main-gke-cluster-name)" >> "$GITHUB_OUTPUT"
+#          echo "main_gke_cluster_location=$(terraform output -raw main-gke-cluster-location)" >> "$GITHUB_OUTPUT"
 
-  sync-delivery-repository:
-    name: Sync "delivery" repository
-    needs: apply-terraform
-    uses: arikkfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
-    with:
-      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-      gke_ingress_region: ${{ needs.apply-terraform.outputs.gcp_region }}
-    secrets: inherit
-
-  apply-fluxcd:
-    name: Apply FluxCD
-    needs: [ apply-terraform, sync-delivery-repository ]
-    uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
-    with:
-      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
-      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
-    secrets: inherit
+#  sync-delivery-repository:
+#    name: Sync "delivery" repository
+#    needs: apply-terraform
+#    uses: arikkfir/delivery/.github/workflows/sync-gke-cluster-info.yml@main
+#    with:
+#      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#      gke_ingress_region: ${{ needs.apply-terraform.outputs.gcp_region }}
+#    secrets: inherit
+#
+#  apply-fluxcd:
+#    name: Apply FluxCD
+#    needs: [ apply-terraform, sync-delivery-repository ]
+#    uses: arikkfir/delivery/.github/workflows/apply-fluxcd.yml@main
+#    with:
+#      gke_cluster_name: ${{ needs.apply-terraform.outputs.main_gke_cluster_name }}
+#      gke_cluster_location: ${{ needs.apply-terraform.outputs.main_gke_cluster_location }}
+#    secrets: inherit
