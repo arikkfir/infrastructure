@@ -1,7 +1,7 @@
 resource "google_container_cluster" "main" {
   depends_on = [
     google_project_service.apis,
-    google_service_account_iam_member.compute-default-service-account_infrastructure_iam-serviceAccountUser,
+    google_project_iam_member.gke-node,
   ]
 
   # GENERAL
@@ -50,10 +50,27 @@ resource "google_container_cluster" "main" {
     channel = "STABLE"
   }
   logging_config {
-    enable_components = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+    enable_components = [
+      "SYSTEM_COMPONENTS",
+      "APISERVER",
+      "CONTROLLER_MANAGER",
+      "SCHEDULER",
+      "WORKLOADS"
+    ]
   }
   monitoring_config {
-    enable_components = ["SYSTEM_COMPONENTS"]
+    enable_components = [
+      "SYSTEM_COMPONENTS",
+      "APISERVER",
+      "SCHEDULER",
+      "CONTROLLER_MANAGER",
+      "STORAGE",
+      "HPA",
+      "POD",
+      "DAEMONSET",
+      "DEPLOYMENT",
+      "STATEFULSET"
+    ]
     managed_prometheus {
       enabled = true
     }
@@ -63,9 +80,6 @@ resource "google_container_cluster" "main" {
       start_time = "02:00"
     }
   }
-  #  cluster_telemetry {
-  #    type = "ENABLED"
-  #  }
 
   # SECURITY
   ######################################################################################################################

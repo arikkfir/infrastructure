@@ -32,7 +32,7 @@ resource "google_container_node_pool" "work_node_pool" {
     }
 
     machine_type    = "e2-standard-4"
-    service_account = data.google_compute_default_service_account.default.email
+    service_account = google_service_account.gke-node.email
     preemptible     = false
     spot            = true
 
