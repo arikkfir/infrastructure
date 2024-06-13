@@ -47,7 +47,7 @@ jobs:
       - run: terraform init -input=false
       - run: terraform plan -input=false -lock-timeout=20m -out tfplan
       - run: tar -c -j -v -f tfplan.tar.bz2 .terraform .terraform.lock.hcl *.tf tfplan
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: plan
           path: tfplan.tar.bz2
