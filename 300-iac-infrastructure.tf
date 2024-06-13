@@ -1,6 +1,6 @@
 resource "google_service_account" "infrastructure" {
   account_id   = "infrastructure"
-  display_name = "GitHub Actions: arikkfir/infrastructure"
+  display_name = "GitHub: arikkfir/infrastructure"
   description  = "GitHub Actions workflows in arikkfir/infrastructure repository."
 }
 
