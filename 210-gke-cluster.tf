@@ -2,6 +2,8 @@ resource "google_container_cluster" "main" {
   depends_on = [
     google_project_service.apis,
     google_project_iam_member.gke-node,
+    google_project_iam_member.config-connector,
+    google_service_account_iam_member.config-connector_workload_identity,
   ]
 
   # GENERAL
