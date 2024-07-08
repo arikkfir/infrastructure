@@ -8,10 +8,11 @@ resource "google_container_cluster" "main" {
 
   # GENERAL
   ######################################################################################################################
-  provider    = google-beta
-  name        = "main"
-  location    = local.gcp_zone_a
-  description = "Main cluster."
+  provider            = google-beta
+  name                = "main"
+  location            = local.gcp_zone_a
+  description         = "Main cluster."
+  deletion_protection = false
 
   # NODE CONFIGURATION
   ######################################################################################################################
