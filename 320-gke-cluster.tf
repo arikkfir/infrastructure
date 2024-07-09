@@ -53,26 +53,31 @@ resource "google_container_cluster" "main" {
     channel = "STABLE"
   }
   logging_config {
+    # When costs are no issue:
+    # - SYSTEM_COMPONENTS
+    # - APISERVER
+    # - CONTROLLER_MANAGER
+    # - SCHEDULER
     enable_components = [
-      "SYSTEM_COMPONENTS",
-      "APISERVER",
-      "CONTROLLER_MANAGER",
-      "SCHEDULER",
       "WORKLOADS"
     ]
   }
   monitoring_config {
+    # When costs are no issue:
+    # - SYSTEM_COMPONENTSµπ
+    # - APISERVER
+    # - SCHEDULER
+    # - CONTROLLER_MANAGER
+    # - STORAGE
+    # - KUBELET
+    # - CADVISOR
+    # - DCGM
     enable_components = [
-      "SYSTEM_COMPONENTS",
-      "APISERVER",
-      "SCHEDULER",
-      "CONTROLLER_MANAGER",
-      "STORAGE",
       "HPA",
       "POD",
       "DAEMONSET",
       "DEPLOYMENT",
-      "STATEFULSET"
+      "STATEFULSET",
     ]
     managed_prometheus {
       enabled = true
